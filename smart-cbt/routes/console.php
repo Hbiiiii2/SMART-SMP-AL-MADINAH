@@ -73,40 +73,23 @@ Artisan::command('exam:force-close', function () {
     $this->info("Mencari ujian yang statusnya masih 'in_progress' tapi sudah lewat waktu deadline...");
     $count = 0;
 
-    \App\Models\ExamAttempt::with('exam.questions')
+    \App\Models\ExamAttempt::with(['exam.questions', 'answers.attachments'])
         ->where('status', 'in_progress')
         ->chunk(50, function ($attempts) use (&$count) {
+            $answerService = app(\App\Services\Answer\AnswerService::class);
+
             foreach ($attempts as $attempt) {
-                // Hitung deadline
-                $deadline = $attempt->started_at->copy()->addMinutes($attempt->exam->durasi_menit);
-                if ($attempt->exam->tanggal_selesai && $attempt->exam->tanggal_selesai->lt($deadline)) {
-                    $deadline = $attempt->exam->tanggal_selesai;
+                if (! $attempt->exam) {
+                    continue;
                 }
 
+                // Hitung deadline
+                $deadline = $answerService->calculateDeadline($attempt);
+
                 // Berikan toleransi keterlambatan 5 menit
-                if (now()->gt($deadline->addMinutes(5))) {
+                if (now()->gt($deadline->copy()->addMinutes(5))) {
                     $this->info("Menutup paksa Attempt ID: {$attempt->id} (Siswa ID: {$attempt->siswa_id})");
-
-                    // Hitung nilai akhir dari jawaban yang sudah tersimpan di database
-                    $totalWeight = (float) $attempt->exam->questions->sum(fn ($q) => $q->bobot ?: 1);
-                    $earned = 0;
-                    
-                    $savedAnswers = $attempt->answers->keyBy('question_id');
-
-                    foreach ($attempt->exam->questions as $question) {
-                        $ans = $savedAnswers->get($question->id);
-                        if ($ans) {
-                            $earned += (float) $ans->skor;
-                        }
-                    }
-
-                    $nilaiAkhir = $totalWeight > 0 ? round($earned / $totalWeight * 100, 2) : 0;
-                    
-                    $attempt->update([
-                        'status' => 'expired', // Pakai expired agar tahu ini ditutup paksa oleh sistem
-                        'submitted_at' => $deadline,
-                        'nilai_akhir' => $nilaiAkhir,
-                    ]);
+                    $answerService->submitAttemptAnswers($attempt, [], $attempt->exam);
                     $count++;
                 }
             }

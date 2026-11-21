@@ -12,6 +12,7 @@ services:
     command: php-fpm -F
     volumes:
       - smart-cbt-storage:/var/www/html/storage/app/public
+      - smart-cbt-private-storage:/var/www/html/storage/app/private
       - smart-cbt-cache:/var/www/html/bootstrap/cache
       - smart-cbt-public:/var/www/html/public
     env_file:
@@ -61,6 +62,7 @@ services:
     command: php-fpm -F
     volumes:
       - smart-cbt-storage:/var/www/html/storage/app/public
+      - smart-cbt-private-storage:/var/www/html/storage/app/private
       - smart-cbt-cache:/var/www/html/bootstrap/cache
       - smart-cbt-public:/var/www/html/public
     env_file:
@@ -112,6 +114,7 @@ services:
     command: php-fpm -F
     volumes:
       - smart-cbt-storage:/var/www/html/storage/app/public
+      - smart-cbt-private-storage:/var/www/html/storage/app/private
       - smart-cbt-cache:/var/www/html/bootstrap/cache
       - smart-cbt-public:/var/www/html/public
     env_file:
@@ -219,6 +222,7 @@ services:
     command: php artisan queue:work redis --sleep=3 --tries=3 --timeout=90
     volumes:
       - smart-cbt-storage:/var/www/html/storage/app/public
+      - smart-cbt-private-storage:/var/www/html/storage/app/private
       - smart-cbt-cache:/var/www/html/bootstrap/cache
     env_file:
       - path: .env
@@ -268,6 +272,7 @@ services:
     command: php artisan schedule:work
     volumes:
       - smart-cbt-storage:/var/www/html/storage/app/public
+      - smart-cbt-private-storage:/var/www/html/storage/app/private
       - smart-cbt-cache:/var/www/html/bootstrap/cache
     env_file:
       - path: .env
@@ -317,6 +322,8 @@ services:
 volumes:
   smart-cbt-storage:
     name: ${CBT_VOLUME_STORAGE:-smart-cbt_smart-cbt-storage}
+  smart-cbt-private-storage:
+    name: ${CBT_VOLUME_PRIVATE_STORAGE:-smart-cbt_smart-cbt-private-storage}
   smart-cbt-cache:
     name: ${CBT_VOLUME_CACHE:-smart-cbt_smart-cbt-cache}
   smart-cbt-public:

@@ -240,7 +240,7 @@ class AnswerService
                 return $attempt;
             }
 
-            $lockedAttempt->load('answers');
+            $lockedAttempt->load('answers.attachments');
             $questions = $this->getAttemptQuestionsForScoring($lockedAttempt);
 
             // Merge already saved answers with any newly submitted answers

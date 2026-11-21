@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\AnswerAttachmentAccessController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\GuruController;
 use App\Http\Controllers\KelasController;
 use App\Http\Controllers\MataPelajaranController;
+use App\Http\Controllers\SiswaAnswerAttachmentController;
 use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GuruExamController;
@@ -158,6 +160,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])
         ->name('profile.destroy');
 
+    Route::get('/lampiran-jawaban/{attachment}', [AnswerAttachmentAccessController::class, 'show'])
+        ->name('lampiran-jawaban.show');
+
 });
 
 
@@ -200,6 +205,18 @@ Route::middleware(['auth', 'siswa'])
         Route::post('/ujian/{ujian}/jawaban', [SiswaExamController::class, 'saveAnswers'])
             ->middleware('throttle:exam-autosave')
             ->name('ujian.answers');
+
+        Route::post('/ujian/{ujian}/soal/{question}/lampiran', [SiswaAnswerAttachmentController::class, 'store'])
+            ->middleware('throttle:exam-upload')
+            ->name('ujian.lampiran.store');
+
+        Route::delete('/ujian/{ujian}/lampiran/{attachment}', [SiswaAnswerAttachmentController::class, 'destroy'])
+            ->middleware('throttle:exam-upload')
+            ->name('ujian.lampiran.destroy');
+
+        Route::post('/ujian/{ujian}/soal/{question}/mode', [SiswaAnswerAttachmentController::class, 'updateMode'])
+            ->middleware('throttle:exam-autosave')
+            ->name('ujian.mode');
 
         Route::post('/ujian/{ujian}/keluar', [SiswaExamController::class, 'leave'])
             ->name('ujian.leave');

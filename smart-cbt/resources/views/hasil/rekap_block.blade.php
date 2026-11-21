@@ -20,7 +20,8 @@
                             @forelse ($answers as $index => $ans)
                                 @php
                                     $isCorrect = $ans->is_correct;
-                                    $hasAnswered = !empty($ans->jawaban);
+                                    $attachmentCount = $ans->relationLoaded('attachments') ? $ans->attachments->count() : $ans->attachments()->count();
+                                    $hasAnswered = !empty($ans->jawaban) || $attachmentCount > 0;
                                     
                                     if (!$hasAnswered) {
                                         $statusText = 'Tidak Dijawab';
@@ -36,7 +37,17 @@
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-5 py-4 text-center font-medium text-slate-900">{{ $index + 1 }}</td>
                                     <td class="px-5 py-4 text-slate-600">{{ $ans->question->tipe === 'pilihan_ganda' || $ans->question->tipe === 'pg' ? 'Pilihan Ganda' : 'Essay' }}</td>
-                                    <td class="px-5 py-4 text-center font-bold text-slate-900">{{ $ans->jawaban ?: '-' }}</td>
+                                    <td class="px-5 py-4 text-center font-bold text-slate-900">
+                                        @if ($ans->jawaban)
+                                            {{ $ans->jawaban }}
+                                        @endif
+                                        @if ($attachmentCount > 0)
+                                            <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{{ $attachmentCount }} Foto</span>
+                                        @endif
+                                        @if (!$ans->jawaban && $attachmentCount === 0)
+                                            -
+                                        @endif
+                                    </td>
                                     <td class="px-5 py-4 text-center text-slate-600">{{ $ans->question->tipe === 'pilihan_ganda' || $ans->question->tipe === 'pg' ? ($ans->question->kunci ?: '-') : '(Essay)' }}</td>
                                     <td class="px-5 py-4 text-center">
                                         <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass }}">

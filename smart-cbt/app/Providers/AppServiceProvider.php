@@ -38,5 +38,10 @@ class AppServiceProvider extends ServiceProvider
             $key = 'submit_' . ($request->user()?->id ?? $request->session()->getId());
             return Limit::perMinute(30)->by($key);
         });
+
+        RateLimiter::for('exam-upload', function (Request $request) {
+            $key = 'upload_' . ($request->user()?->id ?? $request->session()->getId());
+            return Limit::perMinute(60)->by($key);
+        });
     }
 }

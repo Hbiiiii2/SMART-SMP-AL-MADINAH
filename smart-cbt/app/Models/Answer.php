@@ -12,6 +12,7 @@ class Answer extends Model
     protected $fillable = [
         'exam_attempt_id',
         'question_id',
+        'answer_type',
         'jawaban',
         'client_seq',
         'is_correct',
@@ -35,5 +36,10 @@ class Answer extends Model
     public function question()
     {
         return $this->belongsTo(Question::class);
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(AnswerAttachment::class)->orderBy('urutan')->orderBy('id');
     }
 }

@@ -208,7 +208,8 @@ class ExportController extends Controller
         $attempt = ExamAttempt::with([
             'exam.mataPelajaran', 
             'siswa', 
-            'answers.question'
+            'answers.question',
+            'answers.attachments',
         ])->findOrFail($id);
 
         if ($request->user()->isGuru()) {
@@ -223,11 +224,14 @@ class ExportController extends Controller
         $no = 1;
         foreach ($answers as $ans) {
             $isCorrect = $ans->is_correct;
-            $hasAnswered = !empty($ans->jawaban);
+            $attachmentCount = $ans->attachments->count();
+            $hasAnswered = !empty($ans->jawaban) || $attachmentCount > 0;
             $isPG = $ans->question->tipe === 'pilihan_ganda' || $ans->question->tipe === 'pg';
 
-            $jawabanTextExp = $ans->jawaban ?: '-';
-            if ($hasAnswered && $isPG && in_array(strtolower($ans->jawaban), ['a', 'b', 'c', 'd', 'e'])) {
+            $jawabanTextExp = $ans->jawaban ?: ($attachmentCount > 0 ? "[Lampiran Foto: {$attachmentCount} file]" : '-');
+            if ($hasAnswered && !empty($ans->jawaban) && $attachmentCount > 0 && !$isPG) {
+                $jawabanTextExp = $ans->jawaban . " [Lampiran Foto: {$attachmentCount} file]";
+            } elseif ($hasAnswered && $isPG && in_array(strtolower($ans->jawaban), ['a', 'b', 'c', 'd', 'e'])) {
                 $opsiField = 'opsi_' . strtolower($ans->jawaban);
                 $jawabanTextExp = strtoupper($ans->jawaban) . '. ' . strip_tags($ans->question->$opsiField);
             }

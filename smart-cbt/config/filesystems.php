@@ -38,6 +38,14 @@ return [
             'report' => false,
         ],
 
+        'exam_private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/exam-answers'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

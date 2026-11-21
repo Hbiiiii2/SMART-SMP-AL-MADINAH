@@ -13,7 +13,7 @@
         </div>
     </x-slot>
 
-    <div class="py-6">
+    <div class="py-6" x-data="{ zoomImage: null }" @keydown.escape.window="zoomImage = null">
         <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
             
             {{-- Flash Messages --}}
@@ -99,10 +99,17 @@
                             @forelse ($answers as $index => $ans)
                                 @php
                                     $isCorrect = $ans->is_correct;
-                                    $hasAnswered = !empty($ans->jawaban);
+                                    $hasPhotos = $ans->attachments->isNotEmpty();
+                                    $hasAnswered = !empty($ans->jawaban) || $hasPhotos;
                                     $isPG = $ans->question->tipe === 'pilihan_ganda' || $ans->question->tipe === 'pg';
+                                    $tipeLabel = match ($ans->question->tipe) {
+                                        'pg', 'pilihan_ganda' => 'Pilihan Ganda',
+                                        'essay_1' => 'Essay 1',
+                                        'essay_2' => 'Essay 2',
+                                        default => 'Essay',
+                                    };
                                     
-                                    $jawabanDisplay = $ans->jawaban ?: '-';
+                                    $jawabanDisplay = $ans->jawaban ?: '';
                                     if ($hasAnswered && $isPG && in_array(strtolower($ans->jawaban), ['a','b','c','d','e'])) {
                                         $opt = strtolower($ans->jawaban);
                                         $field = 'opsi_' . $opt;
@@ -133,9 +140,52 @@
                                 @endphp
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-5 py-4 text-center font-medium text-slate-900">{{ $index + 1 }}</td>
-                                    <td class="px-5 py-4 text-slate-600">{{ $isPG ? 'Pilihan Ganda' : 'Essay' }}</td>
-                                    <td class="px-5 py-4"><div class="max-h-24 overflow-hidden text-slate-600 text-sm rich-text-content break-words">{!! $ans->question->pertanyaan !!}</div></td>
-                                    <td class="px-5 py-4"><div class="text-slate-900 text-sm rich-text-content break-words">{!! $jawabanDisplay !!}</div></td>
+                                    <td class="px-5 py-4 text-slate-600">{{ $tipeLabel }}</td>
+                                    <td class="px-5 py-4">
+                                        @if ($ans->question->image)
+                                            <button type="button" @click="zoomImage = '{{ Storage::url($ans->question->image) }}'" class="mb-2 block">
+                                                <img src="{{ Storage::url($ans->question->image) }}" class="max-h-20 rounded border border-slate-200 bg-white object-contain hover:opacity-90" alt="Gambar Soal">
+                                            </button>
+                                        @endif
+                                        <div class="max-h-24 overflow-hidden text-slate-600 text-sm rich-text-content break-words">{!! $ans->question->pertanyaan !!}</div>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        @if ($isPG)
+                                            <div class="text-slate-900 text-sm rich-text-content break-words">{!! $jawabanDisplay !== '' ? $jawabanDisplay : '-' !!}</div>
+                                        @else
+                                            <div class="space-y-2 text-left">
+                                                @if (!empty($ans->jawaban))
+                                                    <div class="whitespace-pre-line rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-sm text-slate-900 break-words">{{ $ans->jawaban }}</div>
+                                                @endif
+
+                                                @if ($hasPhotos)
+                                                    <div class="flex flex-wrap gap-2">
+                                                        @foreach ($ans->attachments as $photoIdx => $attachment)
+                                                            @php $photoUrl = route('lampiran-jawaban.show', $attachment); @endphp
+                                                            <div class="group relative overflow-hidden rounded-lg border border-slate-200 bg-white p-1 shadow-xs">
+                                                                <button type="button"
+                                                                        @click="zoomImage = '{{ $photoUrl }}'"
+                                                                        class="block focus:outline-none"
+                                                                        title="Klik untuk memperbesar Foto {{ $photoIdx + 1 }}">
+                                                                    <img src="{{ $photoUrl }}"
+                                                                         class="h-24 w-24 rounded object-cover transition group-hover:opacity-90"
+                                                                         alt="Jawaban Foto {{ $photoIdx + 1 }}">
+                                                                </button>
+                                                                <div class="mt-1 flex items-center justify-between gap-1 px-1 text-[10px] text-slate-500">
+                                                                    <span class="font-semibold text-slate-700">Foto {{ $photoIdx + 1 }}</span>
+                                                                    <a href="{{ $photoUrl }}" target="_blank" rel="noopener" class="text-blue-600 hover:underline">Buka</a>
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+
+                                                @if (!$hasAnswered)
+                                                    <span class="text-sm text-slate-400">-</span>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </td>
                                     <td class="px-5 py-4 text-slate-600 text-sm rich-text-content break-words">{!! $isPG ? $kunciDisplay : '(Essay)' !!}</td>
                                     <td class="px-5 py-4 text-center">
                                         <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass }}">
@@ -233,5 +283,22 @@
             </div>
 
         </div>
+
+        {{-- Modal Zoom Foto Jawaban Siswa --}}
+        <template x-if="zoomImage">
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm"
+                 @click="zoomImage = null">
+                <div class="relative flex max-h-full max-w-4xl flex-col items-center">
+                    <button type="button"
+                            @click="zoomImage = null"
+                            class="mb-2 self-end rounded-full bg-white/20 p-2 text-white hover:bg-white/30">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                    <img :src="zoomImage" class="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl" @click.stop>
+                </div>
+            </div>
+        </template>
     </div>
 </x-app-layout>

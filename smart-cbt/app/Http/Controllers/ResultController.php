@@ -103,6 +103,7 @@ class ResultController extends Controller
             'siswa.kelasData',
             'siswa.user',
             'answers.question',
+            'answers.attachments',
         ])->findOrFail($id);
 
         if ($request->user()->isGuru()) {

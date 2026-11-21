@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\Siswa;
+use App\Services\Answer\AnswerAttachmentService;
 use App\Services\Answer\AnswerService;
 use App\Services\Examination\ExamAttemptService;
 use App\Services\Examination\ScoringService;
@@ -22,6 +23,7 @@ class SiswaExamController extends Controller
     public function __construct(
         protected ExamAttemptService $examAttemptService,
         protected AnswerService $answerService,
+        protected AnswerAttachmentService $attachmentService,
         protected ScoringService $scoringService,
         protected TokenService $tokenService
     ) {}
@@ -144,11 +146,34 @@ class SiswaExamController extends Controller
         $orderedQuestions = $this->examAttemptService->getOrderedQuestions($ujian, $attempt);
         $ujian->setRelation('questions', $orderedQuestions);
 
-        $answers = $attempt->answers()->pluck('jawaban', 'question_id');
-        $answerSeqs = $attempt->answers()->whereNotNull('client_seq')->pluck('client_seq', 'question_id');
+        $attemptAnswers = $attempt->answers()->with('attachments')->get();
+        $answers = $attemptAnswers->pluck('jawaban', 'question_id');
+        $answerSeqs = $attemptAnswers->whereNotNull('client_seq')->pluck('client_seq', 'question_id');
+        $answerTypes = $attemptAnswers->mapWithKeys(function ($ans): array {
+            $mode = $ans->answer_type ?: 'text';
+            if ($mode === 'text' && $ans->attachments->isNotEmpty() && trim((string) $ans->jawaban) === '') {
+                $mode = 'photo';
+            }
+            return [$ans->question_id => $mode];
+        });
+        $answerAttachments = $attemptAnswers->mapWithKeys(fn ($ans): array => [
+            $ans->question_id => $ans->attachments
+                ->map(fn ($attachment) => $this->attachmentService->formatAttachmentDto($attachment))
+                ->values()
+                ->all(),
+        ]);
+        $maxEssayPhotos = (int) config('cbt.essay_max_photos', 3);
         $exam = $ujian;
 
-        return view('siswa.exams.work', compact('exam', 'attempt', 'answers', 'answerSeqs'));
+        return view('siswa.exams.work', compact(
+            'exam',
+            'attempt',
+            'answers',
+            'answerSeqs',
+            'answerTypes',
+            'answerAttachments',
+            'maxEssayPhotos'
+        ));
     }
 
     public function submit(Request $request, Exam $ujian): RedirectResponse
