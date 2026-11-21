@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class AssessmentComponent extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'code',
+        'name',
+        'default_count',
+        'default_weight',
+        'is_active',
+        'order',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'default_count' => 'integer',
+        'default_weight' => 'float',
+        'order' => 'integer',
+    ];
+
+    public function items()
+    {
+        return $this->hasMany(AssessmentItem::class);
+    }
+}

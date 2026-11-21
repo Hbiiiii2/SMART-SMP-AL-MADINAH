@@ -1,0 +1,230 @@
+erDiagram
+    users ||--o| gurus : "has one"
+    users ||--o| siswas : "has one"
+    
+    kelas ||--o{ siswas : "enrolls"
+    kelas ||--o{ pengajarans : "scheduled in"
+    kelas ||--o{ exams : "assigned to (single class)"
+    kelas ||--o{ exam_card_prints : "printed for"
+    
+    mata_pelajarans ||--o{ pengajarans : "taught in"
+    mata_pelajarans ||--o{ exams : "categorizes"
+    mata_pelajarans ||--o{ question_banks : "categorizes"
+    
+    gurus ||--o{ pengajarans : "assigned"
+    gurus ||--o{ exams : "creates (author)"
+    gurus ||--o{ exams : "supervises (guru_pengawas)"
+    gurus ||--o{ question_banks : "owns"
+    gurus ||--o{ exam_supervisors : "assigned room"
+    
+    exams ||--o{ exam_supervisors : "supervised by"
+    exams ||--o{ questions : "contains (ordered)"
+    exams ||--o{ exam_attempts : "attempted by"
+    exams ||--o{ question_banks : "source for"
+    
+    question_banks ||--o{ bank_questions : "contains"
+    
+    siswas ||--o{ exam_attempts : "takes"
+    
+    exam_attempts ||--o{ answers : "records"
+    questions ||--o{ answers : "answered in"
+
+    users {
+        bigint id PK
+        string name
+        string email UK
+        string password
+        string role "admin|guru|siswa"
+        timestamp email_verified_at
+        timestamps timestamps
+    }
+
+    siswas {
+        bigint id PK
+        bigint user_id FK,UK
+        string nis UK
+        string nisn UK
+        string nama
+        string kelas "redundant string"
+        bigint kelas_id FK
+        boolean program_tahasus
+        string tahun_ajaran
+        boolean status_aktif
+        timestamps timestamps
+    }
+
+    gurus {
+        bigint id PK
+        bigint user_id FK,UK
+        string nip UK
+        string nama
+        string kode_guru UK
+        timestamps timestamps
+    }
+
+    kelas {
+        bigint id PK
+        string nama_kelas UK
+        string tingkat
+        string status
+        timestamps timestamps
+    }
+
+    mata_pelajarans {
+        bigint id PK
+        string kode UK
+        string nama
+        text deskripsi
+        timestamps timestamps
+    }
+
+    pengajarans {
+        bigint id PK
+        bigint guru_id FK
+        bigint mata_pelajaran_id FK
+        bigint kelas_id FK
+        string status
+        timestamps timestamps
+    }
+
+    exams {
+        bigint id PK
+        bigint guru_id FK "CascadeOnDelete Risk"
+        bigint guru_pengawas_id FK
+        bigint mata_pelajaran_id FK
+        bigint kelas_id FK "Single class limitation"
+        string nama
+        string tahun_ajaran
+        string semester
+        string jenis
+        string kelas "redundant string"
+        string ruangan
+        string kode_ujian UK
+        string token UK "Global 6-char unique"
+        boolean token_aktif "Unindexed"
+        boolean acak_soal
+        boolean is_token_auto_rotate
+        unsigned_int durasi_menit
+        timestamp token_dibuat_at
+        timestamp token_kedaluwarsa_at
+        text deskripsi
+        json komponen_soal
+        timestamp tanggal_mulai "Unindexed"
+        timestamp tanggal_selesai "Unindexed"
+        string status "Unindexed: draft|aktif|selesai"
+        timestamps timestamps
+    }
+
+    questions {
+        bigint id PK
+        bigint exam_id FK "CascadeOnDelete"
+        unsigned_int urutan "Unique composite (exam_id, urutan)"
+        string tipe "pg|essay_1|essay_2"
+        text pertanyaan
+        string image
+        text petunjuk_jawaban
+        text opsi_a "2NF violation (repeating columns)"
+        string opsi_a_image
+        text opsi_b
+        string opsi_b_image
+        text opsi_c
+        string opsi_c_image
+        text opsi_d
+        string opsi_d_image
+        text opsi_e
+        string opsi_e_image
+        string kunci
+        decimal bobot
+        timestamps timestamps
+    }
+
+    question_banks {
+        bigint id PK
+        bigint guru_id FK
+        bigint mata_pelajaran_id FK
+        string nama
+        bigint source_exam_id FK
+        text keterangan
+        timestamps timestamps
+    }
+
+    bank_questions {
+        bigint id PK
+        bigint question_bank_id FK
+        string tipe
+        text pertanyaan
+        string image
+        text petunjuk_jawaban
+        text opsi_a
+        string opsi_a_image
+        text opsi_b
+        string opsi_b_image
+        text opsi_c
+        string opsi_c_image
+        text opsi_d
+        string opsi_d_image
+        text opsi_e
+        string opsi_e_image
+        string kunci
+        decimal bobot
+        timestamps timestamps
+    }
+
+    exam_supervisors {
+        bigint id PK
+        bigint exam_id FK
+        bigint guru_id FK
+        string ruangan
+        timestamps timestamps
+    }
+
+    exam_attempts {
+        bigint id PK
+        bigint exam_id FK "CascadeOnDelete"
+        bigint siswa_id FK "CascadeOnDelete"
+        timestamp started_at "Unindexed"
+        timestamp submitted_at "Unindexed"
+        string status "Unindexed: in_progress|submitted|expired"
+        decimal nilai_akhir "Unindexed"
+        unsigned_int attempt_number "Blocked by unique constraint"
+        string token_used
+        timestamps timestamps
+    }
+
+    answers {
+        bigint id PK
+        bigint exam_attempt_id FK "CascadeOnDelete"
+        bigint question_id FK "CascadeOnDelete (Answer loss on Q-delete)"
+        text jawaban
+        boolean is_correct "Null for essays"
+        decimal skor "Null for essays"
+        boolean sudah_dinilai "Ghost column (no UI/endpoint)"
+        text catatan_guru "Ghost column (no UI/endpoint)"
+        timestamps timestamps
+    }
+
+    exam_card_prints {
+        bigint id PK
+        string nama_ujian
+        bigint kelas_id FK
+        string ruangan
+        int jumlah_kartu
+        timestamps timestamps
+    }
+
+    exam_card_settings {
+        bigint id PK
+        string logo_kiri
+        string logo_kanan
+        string header_1
+        string header_2
+        string header_3
+        string header_4
+        string judul_kartu
+        string tempat_tanggal
+        string jabatan_penandatangan
+        string nama_penandatangan
+        string nip_penandatangan
+        string ttd_image
+        timestamps timestamps
+    }

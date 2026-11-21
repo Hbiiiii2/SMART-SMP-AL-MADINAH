@@ -1,0 +1,100 @@
+flowchart TD
+    subgraph ClientBrowser["Client Layer (Student / Teacher / Admin)"]
+        UI_Student["Student Browser<br/>(Blade + Alpine.js + LocalStorage)"]
+        UI_Teacher["Teacher Browser<br/>(Monitoring / Question Bank / Exam CRUD)"]
+        UI_Admin["Admin Browser<br/>(Master Data / Exam Cards / Export)"]
+    end
+
+    subgraph NginxReverseProxy["Web Server (Nginx)"]
+        Nginx_CBT["smart-cbt-web (Port 8001 / Nginx)"]
+        Nginx_Smart["smart-web (Port 8000 / Nginx)"]
+    end
+
+    subgraph AppSmartCBT["SMART-CBT Application (Laravel 13)"]
+        Router_CBT["HTTP Kernel & Routes<br/>(routes/web.php & routes/api.php)"]
+        Middleware_CBT["Middleware<br/>(Auth, Siswa, Guru, Admin, ServiceAuth)"]
+        
+        subgraph Controllers_CBT["Controllers (Fat Controllers)"]
+            Ctrl_Siswa["SiswaExamController<br/>(start, work, saveAnswers, submit, result)"]
+            Ctrl_GuruExam["GuruExamController & ExamController<br/>(CRUD Exam, status sync, token rotate)"]
+            Ctrl_Question["QuestionController & QuestionBankController<br/>(Question CRUD, import bank, reorder)"]
+            Ctrl_Monitor["GuruMonitoringController<br/>(In-memory paginated monitoring)"]
+            Ctrl_Api["Api/V1/CbtApiController<br/>(exams, attempts, results)"]
+        end
+
+        Cron_CBT["Scheduler (php artisan schedule:work)<br/>(rotateExpiredToken every 10 min)"]
+    end
+
+    subgraph AppSmartPlus["SMART+ Application (Laravel 12 - Core Academic Portal)"]
+        Router_Smart["Smart HTTP Kernel<br/>(routes/web.php & routes/api.php)"]
+        Ctrl_CbtSync["Erapor/CbtSyncController<br/>(syncApi, importExcel)"]
+        Svc_CbtIntegration["Services/CbtIntegrationService<br/>(HTTP client to CBT REST API)"]
+        Ctrl_SmartApi["Api/V1/SmartApiController<br/>(students, classes, attendance)"]
+    end
+
+    subgraph DatabaseLayer["Data Persistence Layer"]
+        subgraph DB_CBT["Database: smart_cbt (MySQL / PostgreSQL)"]
+            T_Users["users"]
+            T_Siswas["siswas"]
+            T_Gurus["gurus"]
+            T_Kelas["kelas"]
+            T_Exams["exams"]
+            T_Questions["questions (denormalized opsi_a..e)"]
+            T_QBank["question_banks & bank_questions"]
+            T_Attempts["exam_attempts (unique: exam_id, siswa_id)"]
+            T_Answers["answers (unique: attempt_id, question_id)"]
+            T_Sessions["sessions (database session driver)"]
+        end
+
+        subgraph DB_Smart["Database: smart (MySQL)"]
+            T_CoreSiswa["siswa (master siswa)"]
+            T_CoreGuru["guru (master guru)"]
+            T_CbtResults["cbt_results (synced snapshot)"]
+            T_Assessment["assessment_items & student_assessment_scores"]
+            T_Batches["import_batches"]
+        end
+
+        Redis_Cache["Redis Cache / Broker (Configured in Docker)"]
+    end
+
+    %% Client Interactions
+    UI_Student -->|HTTP / CSRF| Nginx_CBT
+    UI_Teacher -->|HTTP / CSRF| Nginx_CBT
+    UI_Admin -->|HTTP / CSRF| Nginx_CBT
+
+    %% Nginx to Laravel
+    Nginx_CBT --> Router_CBT
+    Nginx_Smart --> Router_Smart
+
+    %% CBT Routing & Controllers
+    Router_CBT --> Middleware_CBT
+    Middleware_CBT --> Ctrl_Siswa
+    Middleware_CBT --> Ctrl_GuruExam
+    Middleware_CBT --> Ctrl_Question
+    Middleware_CBT --> Ctrl_Monitor
+    Middleware_CBT --> Ctrl_Api
+    Cron_CBT --> T_Exams
+
+    %% Controller to CBT Database
+    Ctrl_Siswa -->|Row Lock & UpdateOrCreate Loop| T_Attempts
+    Ctrl_Siswa -->|UpdateOrCreate Loop| T_Answers
+    Ctrl_Siswa -->|Read Questions| T_Questions
+    Ctrl_Siswa -->|Session Verification| T_Sessions
+    Ctrl_GuruExam --> T_Exams
+    Ctrl_Question --> T_Questions
+    Ctrl_Question --> T_QBank
+    Ctrl_Monitor -->|Full scan & in-memory pagination| T_Attempts
+    Ctrl_Api --> T_Exams
+    Ctrl_Api --> T_Attempts
+
+    %% Cross-application API integration
+    Ctrl_CbtSync --> Svc_CbtIntegration
+    Svc_CbtIntegration -->|REST API with Bearer Token| Nginx_CBT
+    Ctrl_Api -->|JSON Gradebook Response| Svc_CbtIntegration
+    Svc_CbtIntegration --> T_CbtResults
+    Svc_CbtIntegration --> T_Assessment
+    Svc_CbtIntegration --> T_Batches
+
+    %% Master Data Discrepancy (Isolated DBs)
+    T_Siswas -.->|Out of sync duplicate| T_CoreSiswa
+    T_Gurus -.->|Out of sync duplicate| T_CoreGuru

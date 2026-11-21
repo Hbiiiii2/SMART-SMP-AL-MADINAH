@@ -1,0 +1,455 @@
+<?php
+
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\GuruController;
+use App\Http\Controllers\KelasController;
+use App\Http\Controllers\MataPelajaranController;
+use App\Http\Controllers\SiswaController;
+use App\Http\Controllers\ExamController;
+use App\Http\Controllers\GuruExamController;
+use App\Http\Controllers\GuruDashboardController;
+use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\GuruTokenController;
+use App\Http\Controllers\QuestionBankController;
+use App\Http\Controllers\ResultController;
+use App\Http\Controllers\GuruMonitoringController;
+use App\Http\Controllers\SiswaExamController;
+use App\Http\Controllers\ExamCardController;
+use App\Http\Controllers\PengajaranController;
+
+use App\Models\Siswa;
+use App\Models\Guru;
+use App\Models\Kelas;
+use App\Models\MataPelajaran;
+use App\Models\Exam;
+use App\Models\ExamAttempt;
+use App\Services\Examination\ExamFilterService;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Route Pattern
+|--------------------------------------------------------------------------
+*/
+
+Route::pattern('guru', '[0-9]+');
+Route::pattern('siswa', '[0-9]+');
+
+
+/*
+|--------------------------------------------------------------------------
+| Halaman Welcome
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/', function () {
+    return redirect()->route('login');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Dashboard
+|--------------------------------------------------------------------------
+|
+| Admin  -> dashboard admin
+| Guru   -> dashboard guru
+| Siswa  -> dashboard siswa
+|
+*/
+
+Route::get('/dashboard', function (Request $request, ExamFilterService $examFilterService) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Guru
+    |--------------------------------------------------------------------------
+    */
+
+    if (auth()->user()->isGuru()) {
+        return redirect()->route('guru.dashboard');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Siswa
+    |--------------------------------------------------------------------------
+    */
+
+    if (auth()->user()->isSiswa()) {
+        return redirect()->route('siswa.dashboard');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard Admin
+    |--------------------------------------------------------------------------
+    */
+
+    $examFilterService->syncExpiredExams();
+
+    // Master Data
+    $totalSiswa = Siswa::count();
+    $totalGuru = Guru::count();
+    $totalKelas = Kelas::count();
+    $totalMapel = MataPelajaran::count();
+
+    // Statistik Ujian
+    $ujianSummary = $examFilterService->summarizeExams(Exam::query());
+    $totalUjian = $ujianSummary['total'];
+    $ujianAktif = $ujianSummary['aktif'];
+    $ujianDraft = $ujianSummary['draft'];
+    $ujianSelesai = $ujianSummary['selesai'];
+
+    $totalAttemptSelesai = ExamAttempt::whereIn('status', ['submitted', 'completed', 'needs_grading', 'expired'])->count();
+    $totalPerluNilaiEssay = ExamAttempt::where('status', 'needs_grading')->count();
+
+    $filterOptions = $examFilterService->examFilterOptions();
+
+    $ujianQuery = Exam::with([
+        'mataPelajaran',
+        'kelasData',
+        'guru',
+        'guruPengawas',
+    ]);
+    $examFilterService->withExamCounts($ujianQuery);
+    $examFilterService->applyExamFilters($ujianQuery, $request, [
+        'allowGuruFilter' => true,
+        'allowGuruSearch' => true,
+    ]);
+
+    $ujianTerbaru = $ujianQuery->paginate(8)->withQueryString();
+
+    return view('dashboard', compact(
+        'totalSiswa',
+        'totalGuru',
+        'totalKelas',
+        'totalMapel',
+        'totalUjian',
+        'ujianAktif',
+        'ujianDraft',
+        'ujianSelesai',
+        'ujianSummary',
+        'totalAttemptSelesai',
+        'totalPerluNilaiEssay',
+        'filterOptions',
+        'ujianTerbaru'
+    ));
+
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+
+/*
+|--------------------------------------------------------------------------
+| Profile
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function () {
+
+    Route::get('/profile', [ProfileController::class, 'edit'])
+        ->name('profile.edit');
+
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
+
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
+        ->name('profile.destroy');
+
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| SISWA
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'siswa'])
+    ->prefix('siswa')
+    ->name('siswa.')
+    ->group(function () {
+
+        Route::get('/dashboard', [SiswaExamController::class, 'dashboard'])
+            ->name('dashboard');
+
+        Route::get('/ujian', [SiswaExamController::class, 'index'])
+            ->name('ujian.index');
+
+        Route::get('/riwayat-ujian', [SiswaExamController::class, 'history'])
+            ->name('riwayat');
+
+        Route::get('/hasil-nilai', [SiswaExamController::class, 'results'])
+            ->name('hasil');
+
+        Route::get('/ujian/{ujian}', [SiswaExamController::class, 'show'])
+            ->name('ujian.show');
+
+        Route::get('/ujian/{ujian}/token', [SiswaExamController::class, 'token'])
+            ->name('ujian.token');
+
+        Route::post('/ujian/{ujian}/mulai', [SiswaExamController::class, 'start'])
+            ->middleware('throttle:exam-start')
+            ->name('ujian.start');
+
+        Route::get('/ujian/{ujian}/kerjakan', [SiswaExamController::class, 'work'])
+            ->name('ujian.work');
+
+        Route::post('/ujian/{ujian}/jawaban', [SiswaExamController::class, 'saveAnswers'])
+            ->middleware('throttle:exam-autosave')
+            ->name('ujian.answers');
+
+        Route::post('/ujian/{ujian}/keluar', [SiswaExamController::class, 'leave'])
+            ->name('ujian.leave');
+
+        Route::post('/ujian/{ujian}/kumpulkan', [SiswaExamController::class, 'submit'])
+            ->middleware('throttle:exam-submit')
+            ->name('ujian.submit');
+
+        Route::get('/ujian/{ujian}/hasil', [SiswaExamController::class, 'result'])
+            ->name('ujian.result');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'admin'])->group(function () {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Master Data
+    |--------------------------------------------------------------------------
+    */
+
+    Route::resource('siswa', SiswaController::class);
+
+    Route::resource('guru', GuruController::class);
+
+    Route::resource('kelas', KelasController::class)
+        ->parameters([
+            'kelas' => 'kelas'
+        ]);
+
+    Route::resource('mata-pelajaran', MataPelajaranController::class);
+    Route::resource('pengajaran', PengajaranController::class);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ujian
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/ujian/{ujian}/export-soal', [\App\Http\Controllers\ExportController::class, 'exportSoalUjian'])
+        ->name('ujian.export-soal');
+
+    Route::resource('ujian', ExamController::class);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Hasil Ujian
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/hasil-ujian/export/kelas', [\App\Http\Controllers\ExportController::class, 'exportHasilKelas'])
+        ->name('hasil.export.kelas');
+        
+    Route::get('/hasil-ujian/export/filter', [\App\Http\Controllers\ExportController::class, 'exportHasilFilter'])
+        ->name('hasil.export.filter');
+        
+    Route::get('/hasil-ujian/export/siswa/{siswa}', [\App\Http\Controllers\ExportController::class, 'exportHasilSiswa'])
+        ->name('hasil.export.siswa');
+        
+    Route::get('/hasil-ujian/export/rekap/{attempt}', [\App\Http\Controllers\ExportController::class, 'exportRekapJawaban'])
+        ->name('hasil.export.rekap');
+
+    Route::get('/hasil-ujian', [ResultController::class, 'index'])
+        ->name('hasil.index');
+        
+    Route::get('/hasil-ujian/{attempt}', [ResultController::class, 'show'])
+        ->name('hasil.show');
+
+    Route::post('/hasil-ujian/{attempt}/nilai-essay', [ResultController::class, 'gradeEssay'])
+        ->name('hasil.grade-essay');
+
+    Route::get('/kartu-ujian', [ExamCardController::class, 'index'])
+        ->name('kartu-ujian.index');
+
+    Route::match(['get', 'post'], '/kartu-ujian/preview', [ExamCardController::class, 'preview'])
+        ->name('kartu-ujian.preview');
+    Route::match(['get', 'post'], '/kartu-ujian/pengaturan', [App\Http\Controllers\ExamCardController::class, 'settings'])->name('kartu-ujian.settings');
+
+    Route::match(['get', 'post'], '/kartu-ujian/pdf', [ExamCardController::class, 'pdf'])
+        ->name('kartu-ujian.pdf');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| GURU
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'guru'])
+    ->prefix('guru')
+    ->name('guru.')
+    ->group(function () {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Dashboard Guru
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/dashboard', GuruDashboardController::class)
+            ->name('dashboard');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ujian
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/ujian', [GuruExamController::class, 'index'])
+            ->name('ujian.index');
+
+        Route::get('/ujian/{ujian}', [GuruExamController::class, 'show'])
+            ->name('ujian.show');
+
+        Route::get('/ujian/{ujian}/export-soal', [\App\Http\Controllers\ExportController::class, 'exportSoalUjian'])
+            ->name('ujian.export-soal');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Bank Soal
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/bank-soal', [QuestionBankController::class, 'index'])
+            ->name('bank.index');
+
+        Route::post('/bank-soal', [QuestionBankController::class, 'store'])
+            ->name('bank.store');
+
+        Route::get('/bank-soal/{bankSoal}', [QuestionBankController::class, 'show'])
+            ->name('bank.show');
+
+        Route::get('/bank-soal/{bankSoal}/export-soal', [\App\Http\Controllers\ExportController::class, 'exportBankSoal'])
+            ->name('bank.export-soal');
+
+        Route::get('/bank-soal/{bankSoal}/import-template', [QuestionBankController::class, 'downloadTemplate'])
+            ->name('bank.import-template');
+
+        Route::post('/bank-soal/{bankSoal}/import', [QuestionBankController::class, 'importSoal'])
+            ->name('bank.import');
+
+        Route::post('/bank-soal/{bankSoal}/soal', [QuestionBankController::class, 'storeQuestion'])
+            ->name('bank.question.store');
+
+        Route::delete('/bank-soal/{bankSoal}/soal/{bankQuestion}', [QuestionBankController::class, 'destroyQuestion'])
+            ->name('bank.question.destroy');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Soal Ujian
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post('/ujian/{ujian}/soal/import-bank/{bankSoal}', [QuestionController::class, 'importBank'])
+            ->name('soal.import-bank');
+
+        Route::post('/ujian/{ujian}/terbitkan', [QuestionController::class, 'publish'])
+            ->name('soal.publish');
+
+        Route::post('/ujian/{ujian}/soal/import/{bankQuestion}', [QuestionController::class, 'import'])
+            ->name('soal.import');
+
+        Route::post('/ujian/{ujian}/soal/{soal}/duplicate', [QuestionController::class, 'duplicate'])
+            ->name('soal.duplicate');
+
+        Route::patch('/ujian/{ujian}/soal/reorder', [QuestionController::class, 'reorder'])
+            ->name('soal.reorder');
+
+        Route::resource('/ujian/{ujian}/soal', QuestionController::class)
+            ->except(['show'])
+            ->names('soal');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Token Ujian
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/token', [GuruTokenController::class, 'index'])
+            ->name('token.index');
+
+        Route::get('/ujian/{ujian}/token', [GuruTokenController::class, 'show'])
+            ->name('token.show');
+
+        Route::post('/ujian/{ujian}/token', [GuruTokenController::class, 'generate'])
+            ->name('token.generate');
+
+        Route::patch('/ujian/{ujian}/token', [GuruTokenController::class, 'toggle'])
+            ->name('token.toggle');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hasil Ujian
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/hasil-ujian/export/kelas', [\App\Http\Controllers\ExportController::class, 'exportHasilKelas'])
+            ->name('hasil.export.kelas');
+            
+        Route::get('/hasil-ujian/export/filter', [\App\Http\Controllers\ExportController::class, 'exportHasilFilter'])
+            ->name('hasil.export.filter');
+            
+        Route::get('/hasil-ujian/export/siswa/{siswa}', [\App\Http\Controllers\ExportController::class, 'exportHasilSiswa'])
+            ->name('hasil.export.siswa');
+            
+        Route::get('/hasil-ujian/export/rekap/{attempt}', [\App\Http\Controllers\ExportController::class, 'exportRekapJawaban'])
+            ->name('hasil.export.rekap');
+
+        Route::get('/hasil-ujian', [ResultController::class, 'index'])
+            ->name('hasil.index');
+            
+        Route::get('/hasil-ujian/{attempt}', [ResultController::class, 'show'])
+            ->name('hasil.show');
+
+        Route::post('/hasil-ujian/{attempt}/nilai-essay', [ResultController::class, 'gradeEssay'])
+            ->name('hasil.grade-essay');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Monitoring
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/monitoring', [GuruMonitoringController::class, 'index'])
+            ->name('monitoring.index');
+    });
+
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+require __DIR__.'/auth.php';
+

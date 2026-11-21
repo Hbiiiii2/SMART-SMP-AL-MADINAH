@@ -1,0 +1,17 @@
+node_modules
+vendor
+public/build
+public/storage
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/public/*
+.git
+.github
+.env
+!.env.example
+!.env.docker.example
+README.md
+*.zip
+*.rar

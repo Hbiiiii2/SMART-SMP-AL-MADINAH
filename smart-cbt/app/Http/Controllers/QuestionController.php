@@ -1,0 +1,357 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Exam;
+use App\Models\QuestionBank;
+use App\Models\Question;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
+
+class QuestionController extends Controller
+{
+    private function owned(Exam $exam, Request $request): void
+    {
+        $user = $request->user();
+        abort_unless(
+            ($user && $user->role === 'admin') || ($user && $user->guru && (int) $exam->guru_id === (int) $user->guru->id),
+            403,
+            'Anda tidak memiliki akses ke ujian ini.'
+        );
+    }
+
+    private function assertExamModifiable(Exam $exam): void
+    {
+        abort_if(
+            $exam->examAttempts()->exists(),
+            422,
+            'Soal tidak dapat dimodifikasi karena ujian telah memiliki riwayat pengerjaan siswa.'
+        );
+    }
+
+    public function index(Exam $ujian, Request $request): View
+    {
+        $this->owned($ujian, $request);
+        $ujian->load(['mataPelajaran', 'kelasData']);
+        $questions = $ujian->questions()->paginate(15);
+        $banks = QuestionBank::with('questions')
+            ->where('guru_id', $request->user()->guru?->id)
+            ->latest()
+            ->get();
+        $importedQuestions = $ujian->questions()->pluck('pertanyaan')->all();
+        $totalQuestions = $ujian->questions()->count();
+        $pgCount = $ujian->questions()->where('tipe', 'pg')->count();
+        $essayCount = $ujian->questions()->whereIn('tipe', ['essay_1', 'essay_2'])->count();
+        $totalBobot = (float) $ujian->questions()->sum('bobot');
+
+        return view('guru.soal.index', [
+            'exam' => $ujian,
+            'questions' => $questions,
+            'banks' => $banks,
+            'importedQuestions' => $importedQuestions,
+            'totalQuestions' => $totalQuestions,
+            'pgCount' => $pgCount,
+            'essayCount' => $essayCount,
+            'totalBobot' => $totalBobot,
+        ]);
+    }
+
+    public function publish(Exam $ujian, Request $request): RedirectResponse
+    {
+        $this->owned($ujian, $request);
+
+        if (! $ujian->questions()->exists()) {
+            return back()->withErrors(['questions' => 'Tambahkan minimal satu soal sebelum menerbitkan ujian.']);
+        }
+
+        $ujian->activateToken();
+
+        return back()->with('success', 'Ujian siap dikerjakan siswa dan token aktif telah dibuat.');
+    }
+
+    public function create(Exam $ujian, Request $request): View
+    {
+        $this->owned($ujian, $request);
+        $this->assertExamModifiable($ujian);
+        $ujian->load(['mataPelajaran', 'kelasData']);
+
+        return view('guru.soal.form', ['exam' => $ujian, 'question' => new Question(), 'allowedTypes' => $this->allowedTypes($ujian)]);
+    }
+
+    public function store(Exam $ujian, Request $request): RedirectResponse
+    {
+        $this->owned($ujian, $request);
+        $this->assertExamModifiable($ujian);
+
+        $data = $this->validated($request, $ujian);
+        $data['exam_id'] = $ujian->id;
+        $data['urutan'] = ((int) $ujian->questions()->max('urutan')) + 1;
+        
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('questions', 'public');
+        }
+
+        foreach (['a', 'b', 'c', 'd', 'e'] as $opt) {
+            $field = 'opsi_' . $opt . '_image';
+            if ($request->hasFile($field)) {
+                $data[$field] = $request->file($field)->store('questions/options', 'public');
+            }
+        }
+
+        DB::transaction(function () use ($data, $ujian): void {
+            Question::create($data);
+            $ujian->prepareToken();
+        });
+
+        return to_route('guru.soal.index', $ujian)->with('success', 'Soal berhasil ditambahkan.');
+    }
+
+    public function edit(Exam $ujian, Question $soal, Request $request): View
+    {
+        $this->owned($ujian, $request);
+        abort_unless($soal->exam_id === $ujian->id, 404);
+        $this->assertExamModifiable($ujian);
+        $ujian->load(['mataPelajaran', 'kelasData']);
+
+        return view('guru.soal.form', ['exam' => $ujian, 'question' => $soal, 'allowedTypes' => $this->allowedTypes($ujian)]);
+    }
+
+    public function update(Exam $ujian, Question $soal, Request $request): RedirectResponse
+    {
+        $this->owned($ujian, $request);
+        abort_unless($soal->exam_id === $ujian->id, 404);
+        $this->assertExamModifiable($ujian);
+        
+        $data = $this->validated($request, $ujian);
+        
+        if ($request->input('remove_image')) {
+            if ($soal->image) {
+                Storage::disk('public')->delete($soal->image);
+            }
+            $data['image'] = null;
+        } elseif ($request->hasFile('image')) {
+            if ($soal->image) {
+                Storage::disk('public')->delete($soal->image);
+            }
+            $data['image'] = $request->file('image')->store('questions', 'public');
+        }
+
+        foreach (['a', 'b', 'c', 'd', 'e'] as $opt) {
+            $field = 'opsi_' . $opt . '_image';
+            $removeField = 'remove_' . $field;
+            if ($request->input($removeField)) {
+                if ($soal->$field) {
+                    Storage::disk('public')->delete($soal->$field);
+                }
+                $data[$field] = null;
+            } elseif ($request->hasFile($field)) {
+                if ($soal->$field) {
+                    Storage::disk('public')->delete($soal->$field);
+                }
+                $data[$field] = $request->file($field)->store('questions/options', 'public');
+            }
+        }
+        
+        DB::transaction(function () use ($soal, $data, $ujian): void {
+            $soal->update($data);
+            $ujian->prepareToken();
+        });
+
+        return to_route('guru.soal.index', $ujian)->with('success', 'Soal berhasil diperbarui.');
+    }
+
+    public function destroy(Exam $ujian, Question $soal, Request $request): RedirectResponse
+    {
+        $this->owned($ujian, $request);
+        abort_unless($soal->exam_id === $ujian->id, 404);
+        $this->assertExamModifiable($ujian);
+
+        DB::transaction(function () use ($soal): void {
+            if ($soal->image) {
+                Storage::disk('public')->delete($soal->image);
+            }
+            foreach (['a', 'b', 'c', 'd', 'e'] as $opt) {
+                $field = 'opsi_' . $opt . '_image';
+                if ($soal->$field) {
+                    Storage::disk('public')->delete($soal->$field);
+                }
+            }
+
+            $soal->delete();
+        });
+
+        return to_route('guru.soal.index', $ujian)->with('success', 'Soal berhasil dihapus.');
+    }
+
+    public function duplicate(Exam $ujian, Question $soal, Request $request): RedirectResponse
+    {
+        $this->owned($ujian, $request);
+        abort_unless($soal->exam_id === $ujian->id, 404);
+        $this->assertExamModifiable($ujian);
+
+        DB::transaction(function () use ($ujian, $soal): void {
+            $copy = $soal->replicate();
+            $copy->urutan = ((int) $ujian->questions()->max('urutan')) + 1;
+            $copy->save();
+            $ujian->prepareToken();
+        });
+
+        return back()->with('success', 'Soal berhasil diduplikat.');
+    }
+
+    public function reorder(Exam $ujian, Request $request): RedirectResponse
+    {
+        $this->owned($ujian, $request);
+        $this->assertExamModifiable($ujian);
+
+        $data = $request->validate(['order' => ['required', 'array'], 'order.*' => ['integer', 'min:1']]);
+        $questionIds = $ujian->questions()->whereIn('questions.id', array_keys($data['order']))->pluck('questions.id');
+        
+        DB::transaction(function () use ($ujian, $questionIds, $data): void {
+            DB::table('questions')->where('exam_id', $ujian->id)->whereIn('id', $questionIds)->update(['urutan' => DB::raw('urutan + 100000')]);
+            foreach ($data['order'] as $questionId => $position) {
+                if ($questionIds->contains((int) $questionId)) {
+                    DB::table('questions')->where('exam_id', $ujian->id)->where('id', $questionId)->update(['urutan' => (int) $position]);
+                }
+            }
+        });
+
+        return back()->with('success', 'Urutan soal diperbarui.');
+    }
+
+    public function import(Exam $ujian, \App\Models\BankQuestion $bankQuestion, Request $request): RedirectResponse
+    {
+        $this->owned($ujian, $request);
+        $this->assertExamModifiable($ujian);
+        abort_unless($bankQuestion->bank->guru_id === $request->user()->guru?->id || $request->user()->role === 'admin', 403);
+        abort_unless(in_array($bankQuestion->tipe, $this->allowedTypes($ujian), true), 422);
+
+        if ($ujian->questions()->where('pertanyaan', $bankQuestion->pertanyaan)->exists()) {
+            return to_route('guru.soal.index', $ujian)->with('success', 'Soal tersebut sudah ada di ujian.');
+        }
+
+        DB::transaction(function () use ($ujian, $bankQuestion): void {
+            $question = new Question([
+                'tipe' => $bankQuestion->tipe,
+                'pertanyaan' => $bankQuestion->pertanyaan,
+                'image' => $bankQuestion->image,
+                'petunjuk_jawaban' => $bankQuestion->petunjuk_jawaban,
+                'opsi_a' => $bankQuestion->opsi_a,
+                'opsi_a_image' => $bankQuestion->opsi_a_image,
+                'opsi_b' => $bankQuestion->opsi_b,
+                'opsi_b_image' => $bankQuestion->opsi_b_image,
+                'opsi_c' => $bankQuestion->opsi_c,
+                'opsi_c_image' => $bankQuestion->opsi_c_image,
+                'opsi_d' => $bankQuestion->opsi_d,
+                'opsi_d_image' => $bankQuestion->opsi_d_image,
+                'opsi_e' => $bankQuestion->opsi_e,
+                'opsi_e_image' => $bankQuestion->opsi_e_image,
+                'kunci' => $bankQuestion->kunci,
+                'bobot' => $bankQuestion->bobot,
+                'exam_id' => $ujian->id,
+                'urutan' => ((int) $ujian->questions()->max('urutan')) + 1,
+            ]);
+            $question->save();
+            $ujian->prepareToken();
+        });
+
+        return to_route('guru.soal.index', $ujian)->with('success', 'Soal berhasil dimasukkan dari bank soal.');
+    }
+
+    public function importBank(Exam $ujian, QuestionBank $bankSoal, Request $request): RedirectResponse
+    {
+        $this->owned($ujian, $request);
+        $this->assertExamModifiable($ujian);
+        abort_unless($bankSoal->guru_id === $request->user()->guru?->id || $request->user()->role === 'admin', 403);
+
+        $allowedTypes = $this->allowedTypes($ujian);
+        $existingTexts = $ujian->questions()->pluck('pertanyaan');
+        $questions = $bankSoal->questions()
+            ->whereIn('tipe', $allowedTypes)
+            ->whereNotIn('pertanyaan', $existingTexts)
+            ->get();
+
+        DB::transaction(function () use ($ujian, $questions): void {
+            $nextOrder = (int) $ujian->questions()->max('urutan');
+            foreach ($questions as $bankQuestion) {
+                Question::create([
+                    'tipe' => $bankQuestion->tipe,
+                    'pertanyaan' => $bankQuestion->pertanyaan,
+                    'image' => $bankQuestion->image,
+                    'petunjuk_jawaban' => $bankQuestion->petunjuk_jawaban,
+                    'opsi_a' => $bankQuestion->opsi_a,
+                    'opsi_a_image' => $bankQuestion->opsi_a_image,
+                    'opsi_b' => $bankQuestion->opsi_b,
+                    'opsi_b_image' => $bankQuestion->opsi_b_image,
+                    'opsi_c' => $bankQuestion->opsi_c,
+                    'opsi_c_image' => $bankQuestion->opsi_c_image,
+                    'opsi_d' => $bankQuestion->opsi_d,
+                    'opsi_d_image' => $bankQuestion->opsi_d_image,
+                    'opsi_e' => $bankQuestion->opsi_e,
+                    'opsi_e_image' => $bankQuestion->opsi_e_image,
+                    'kunci' => $bankQuestion->kunci,
+                    'bobot' => $bankQuestion->bobot,
+                    'exam_id' => $ujian->id,
+                    'urutan' => ++$nextOrder,
+                ]);
+            }
+
+            if ($questions->isNotEmpty()) {
+                $ujian->prepareToken();
+            }
+        });
+
+        return to_route('guru.soal.index', $ujian)->with('success', $questions->count().' soal berhasil diimport dari bank soal.');
+    }
+
+    private function validated(Request $request, ?Exam $exam = null): array
+    {
+        $rules = [
+            'tipe' => ['required', 'in:pg,essay_1,essay_2'],
+            'pertanyaan' => ['required', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif,svg', 'max:2048'],
+            'remove_image' => ['nullable', 'boolean'],
+            'petunjuk_jawaban' => ['nullable', 'string'],
+            'opsi_a' => ['nullable', 'string'], 'opsi_b' => ['nullable', 'string'],
+            'opsi_c' => ['nullable', 'string'], 'opsi_d' => ['nullable', 'string'], 'opsi_e' => ['nullable', 'string'],
+            'kunci' => ['nullable', 'in:A,B,C,D,E'],
+            'bobot' => ['required', 'numeric', 'min:0'],
+        ];
+
+        foreach (['a', 'b', 'c', 'd', 'e'] as $opt) {
+            $rules['opsi_' . $opt . '_image'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif,svg', 'max:2048'];
+            $rules['remove_opsi_' . $opt . '_image'] = ['nullable', 'boolean'];
+        }
+
+        $data = $request->validate($rules);
+
+        if ($exam && ! in_array($data['tipe'], $this->allowedTypes($exam), true)) {
+            abort(422, 'Jenis soal tidak termasuk komponen ujian ini.');
+        }
+
+        if ($data['tipe'] === 'pg') {
+            $request->validate([
+                'opsi_a' => ['required', 'string'], 'opsi_b' => ['required', 'string'],
+                'opsi_c' => ['required', 'string'], 'opsi_d' => ['required', 'string'],
+                'opsi_e' => ['required_if:kunci,E', 'nullable', 'string'],
+                'kunci' => ['required', 'in:A,B,C,D,E'],
+            ]);
+        } else {
+            $data = array_merge($data, ['opsi_a' => null, 'opsi_b' => null, 'opsi_c' => null, 'opsi_d' => null, 'opsi_e' => null, 'kunci' => null]);
+        }
+
+        return $data;
+    }
+
+    private function allowedTypes(Exam $exam): array
+    {
+        return $exam->komponen_soal ?: match ($exam->jenis) {
+            'pg' => ['pg'],
+            'essay' => ['essay_1', 'essay_2'],
+            default => ['pg', 'essay_1', 'essay_2'],
+        };
+    }
+}

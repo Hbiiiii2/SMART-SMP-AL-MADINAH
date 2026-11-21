@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "search": true,
+    "menuWidth": 10,
+    "smallerScrollbars": false,
+    "showTimestamp": true,
+    "showStd": false,
+    "showAllContainers": true,
+    "softWrap": true,
+    "collapseNav": false,
+    "automaticRedirect": "delayed",
+    "size": "medium",
+    "compact": false,
+    "lightTheme": "dark",
+    "hourStyle": "auto",
+    "dateLocale": "auto",
+    "locale": "",
+    "groupContainers": "at-least-2"
+  },
+  "pinned": [],
+  "releaseSeen": "v10.7.4",
+  "collapsedGroups": [
+    "tailadmin-laravel-main"
+  ]
+}

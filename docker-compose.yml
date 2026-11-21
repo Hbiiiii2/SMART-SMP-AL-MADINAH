@@ -1,0 +1,5 @@
+name: smp-almadinah
+
+include:
+  - path: smart+/docker-compose.yml
+  - path: smart-cbt/docker-compose.yml

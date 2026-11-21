@@ -1,0 +1,25 @@
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Environment files
+.env
+.env.backup
+.env.production
+.env.docker
+
+# Logs & OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE / Editors
+.vscode/
+.idea/
+
+# Database dumps & debug artifacts
+*.sql
+lsp-*.php
+debug_excel.json
+

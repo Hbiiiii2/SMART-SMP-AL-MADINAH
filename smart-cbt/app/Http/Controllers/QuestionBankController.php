@@ -1,0 +1,541 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\BankQuestion;
+use App\Models\QuestionBank;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+class QuestionBankController extends Controller
+{
+    public function index(Request $request): View
+    {
+        $guruId = $request->user()->guru?->id;
+        abort_unless($guruId, 403);
+
+        // Sinkronkan soal ujian yang belum ada di bank soal untuk guru ini
+        $this->syncExamQuestionsIntoBanks($guruId);
+
+        $query = QuestionBank::with([
+                'mataPelajaran',
+                'sourceExam.kelasData'
+            ])
+            ->withCount('questions')
+            ->where('guru_id', $guruId);
+
+        if ($request->filled('q')) {
+            $query->where(
+                'nama',
+                'like',
+                '%' . $request->string('q') . '%'
+            );
+        }
+
+        if ($request->filled('mata_pelajaran_id')) {
+            $query->where(
+                'mata_pelajaran_id',
+                $request->integer('mata_pelajaran_id')
+            );
+        }
+
+        if ($request->filled('tipe')) {
+            $query->whereHas(
+                'questions',
+                fn ($questions) =>
+                    $questions->where(
+                        'tipe',
+                        $request->string('tipe')
+                    )
+            );
+        }
+
+        $banks = $query->latest()->get();
+
+        return view('guru.bank-soal.index', [
+            'banks' => $banks,
+            'subjects' => \App\Models\MataPelajaran::orderBy('nama')->get(),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $guruId = $request->user()->guru?->id;
+        abort_unless($guruId, 403);
+
+        $data = $request->validate([
+            'nama' => [
+                'required',
+                'string',
+                'max:255'
+            ],
+
+            'mata_pelajaran_id' => [
+                'required',
+                'exists:mata_pelajarans,id'
+            ],
+        ]);
+
+        QuestionBank::create([
+            ...$data,
+            'guru_id' => $guruId,
+        ]);
+
+        return back()->with(
+            'success',
+            'Bank soal berhasil dibuat.'
+        );
+    }
+
+    public function show(
+        QuestionBank $bankSoal,
+        Request $request
+    ): View {
+        $this->owned($bankSoal, $request);
+
+        return view('guru.bank-soal.show', [
+            'bank' => $bankSoal->load([
+                'mataPelajaran',
+                'sourceExam.kelasData'
+            ]),
+
+            'questions' => $bankSoal
+                ->questions()
+                ->latest()
+                ->paginate(15),
+        ]);
+    }
+
+    public function storeQuestion(
+        QuestionBank $bankSoal,
+        Request $request
+    ): RedirectResponse {
+        $this->owned($bankSoal, $request);
+
+        $this->guardEditableBank($bankSoal);
+
+        $data = $request->validate([
+            'tipe' => [
+                'required',
+                'in:pg,essay_1,essay_2'
+            ],
+
+            'pertanyaan' => [
+                'required',
+                'string'
+            ],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif,svg', 'max:2048'],
+            'opsi_a_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif,svg', 'max:2048'],
+            'opsi_b_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif,svg', 'max:2048'],
+            'opsi_c_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif,svg', 'max:2048'],
+            'opsi_d_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif,svg', 'max:2048'],
+            'opsi_e_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif,svg', 'max:2048'],
+
+            'petunjuk_jawaban' => [
+                'nullable',
+                'string'
+            ],
+
+            'opsi_a' => [
+                'nullable',
+                'string'
+            ],
+
+            'opsi_b' => [
+                'nullable',
+                'string'
+            ],
+
+            'opsi_c' => [
+                'nullable',
+                'string'
+            ],
+
+            'opsi_d' => [
+                'nullable',
+                'string'
+            ],
+
+            'opsi_e' => [
+                'nullable',
+                'string'
+            ],
+
+            'kunci' => [
+                'nullable',
+                'in:A,B,C,D,E'
+            ],
+
+            'bobot' => [
+                'required',
+                'numeric',
+                'min:0'
+            ],
+        ]);
+
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('questions', 'public');
+        }
+
+        foreach (['a', 'b', 'c', 'd', 'e'] as $opt) {
+            $field = 'opsi_' . $opt . '_image';
+            if ($request->hasFile($field)) {
+                $data[$field] = $request->file($field)->store('questions/options', 'public');
+            }
+        }
+
+        BankQuestion::create([
+            ...$data,
+            'question_bank_id' => $bankSoal->id,
+        ]);
+
+        return back()->with(
+            'success',
+            'Soal disimpan ke bank.'
+        );
+    }
+
+    public function destroyQuestion(
+        QuestionBank $bankSoal,
+        BankQuestion $bankQuestion,
+        Request $request
+    ): RedirectResponse {
+        $this->owned($bankSoal, $request);
+
+        $this->guardEditableBank($bankSoal);
+
+        abort_unless(
+            $bankQuestion->question_bank_id === $bankSoal->id,
+            404
+        );
+
+        if ($bankQuestion->image) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($bankQuestion->image);
+        }
+        foreach (['a', 'b', 'c', 'd', 'e'] as $opt) {
+            $field = 'opsi_' . $opt . '_image';
+            if ($bankQuestion->$field) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($bankQuestion->$field);
+            }
+        }
+
+        $bankQuestion->delete();
+
+        return back()->with(
+            'success',
+            'Soal bank dihapus.'
+        );
+    }
+
+    /**
+     * Memastikan bank soal hanya bisa diakses
+     * oleh guru pemiliknya.
+     */
+    private function owned(
+        QuestionBank $bank,
+        Request $request
+    ): void {
+        abort_unless(
+            $bank->guru_id === $request->user()->guru?->id,
+            403
+        );
+    }
+
+    /**
+     * Bank yang berasal dari ujian tidak boleh
+     * diedit manual.
+     */
+    private function guardEditableBank(
+        QuestionBank $bank
+    ): void {
+        if ($bank->source_exam_id) {
+            abort(
+                403,
+                'Soal ini sudah dipakai untuk ujian tertentu dan tidak bisa diubah lagi. Gunakan bank soal stok untuk menyiapkan soal baru.'
+            );
+        }
+    }
+
+    /**
+     * Sinkronkan soal dari ujian ke Bank Soal.
+     *
+     * Nama bank dibuat:
+     *
+     * UAS • Matematika • Kelas 8
+     *
+     * atau:
+     *
+     * UTS • Matematika • Taimiyah
+     */
+    private function syncExamQuestionsIntoBanks(
+        int $guruId
+    ): void {
+        $exams = \App\Models\Exam::with([
+                'questions',
+                'kelasData',
+                'mataPelajaran'
+            ])
+            ->where('guru_id', $guruId)
+            ->get();
+
+        foreach ($exams as $exam) {
+
+            // Kalau belum ada soal, tidak perlu
+            // dibuatkan bank.
+            if ($exam->questions->isEmpty()) {
+                continue;
+            }
+
+            /*
+             * Ambil nama mata pelajaran.
+             *
+             * Contoh:
+             * Matematika
+             * Bahasa Indonesia
+             * Prakarya
+             */
+            $mataPelajaran = $exam->mataPelajaran?->nama
+                ?? 'Mata Pelajaran';
+
+            /*
+             * Ambil nama kelas.
+             *
+             * Kalau menggunakan data kelas:
+             * Kelas 8
+             * Taimiyah
+             * VIII A
+             *
+             * Maka otomatis mengikuti database.
+             */
+            $kelasLabel = $exam->kelasData?->nama_kelas
+                ?? $exam->kelas
+                ?? 'Kelas tertentu';
+
+            /*
+             * Nama bank soal yang akan ditampilkan.
+             *
+             * Contoh:
+             *
+             * UAS • Matematika • Kelas 8
+             * UTS • Bahasa Indonesia • Taimiyah
+             * UAS • Prakarya • Kelas 8
+             */
+            $namaBank = $exam->nama
+                . ' • '
+                . $mataPelajaran
+                . ' • '
+                . $kelasLabel;
+
+            /*
+             * Cari bank berdasarkan ujian sumber.
+             *
+             * Ini penting supaya ketika nama bank berubah,
+             * tidak dibuat bank baru terus-menerus.
+             */
+            $bank = QuestionBank::where('guru_id', $guruId)
+                ->where('source_exam_id', $exam->id)
+                ->first();
+
+            /*
+             * Kalau belum ada bank dari ujian tersebut,
+             * cek kemungkinan bank lama yang dibuat oleh
+             * sistem versi sebelumnya.
+             */
+            if (!$bank) {
+                $bank = QuestionBank::where('guru_id', $guruId)
+                    ->where('mata_pelajaran_id', $exam->mata_pelajaran_id)
+                    ->where('nama', $exam->nama)
+                    ->first();
+            }
+
+            /*
+             * Kalau belum ada juga, buat baru.
+             */
+            if (!$bank) {
+                $bank = QuestionBank::create([
+                    'guru_id' => $guruId,
+                    'mata_pelajaran_id' => $exam->mata_pelajaran_id,
+                    'nama' => $namaBank,
+                    'source_exam_id' => $exam->id,
+                    'keterangan' =>
+                        'Sudah dipakai untuk ujian '
+                        . $exam->nama
+                        . ' pada '
+                        . $mataPelajaran
+                        . ' kelas '
+                        . $kelasLabel,
+                ]);
+            } else {
+
+                /*
+                 * Update nama bank lama supaya bank yang
+                 * sebelumnya hanya bernama "UAS" menjadi:
+                 *
+                 * UAS • Matematika • Kelas 8
+                 */
+                $bank->update([
+                    'nama' => $namaBank,
+                    'mata_pelajaran_id' => $exam->mata_pelajaran_id,
+                    'source_exam_id' => $exam->id,
+                    'keterangan' =>
+                        'Sudah dipakai untuk ujian '
+                        . $exam->nama
+                        . ' pada '
+                        . $mataPelajaran
+                        . ' kelas '
+                        . $kelasLabel,
+                ]);
+            }
+
+            /*
+             * Masukkan setiap soal ujian ke bank.
+             */
+            foreach ($exam->questions as $question) {
+
+                $bank->questions()->firstOrCreate(
+                    [
+                        'question_bank_id' => $bank->id,
+                        'pertanyaan' => $question->pertanyaan,
+                    ],
+                    [
+                        'tipe' => $question->tipe,
+                        'image' => $question->image,
+                        'petunjuk_jawaban' =>
+                            $question->petunjuk_jawaban,
+
+                        'opsi_a' => $question->opsi_a,
+                        'opsi_a_image' => $question->opsi_a_image,
+                        'opsi_b' => $question->opsi_b,
+                        'opsi_b_image' => $question->opsi_b_image,
+                        'opsi_c' => $question->opsi_c,
+                        'opsi_c_image' => $question->opsi_c_image,
+                        'opsi_d' => $question->opsi_d,
+                        'opsi_d_image' => $question->opsi_d_image,
+                        'opsi_e' => $question->opsi_e,
+                        'opsi_e_image' => $question->opsi_e_image,
+
+                        'kunci' => $question->kunci,
+                        'bobot' => $question->bobot,
+                    ]
+                );
+            }
+        }
+    }
+
+    public function downloadTemplate(QuestionBank $bankSoal, Request $request)
+    {
+        $this->owned($bankSoal, $request);
+
+        $templateData = [
+            [
+                'Tipe' => 'pg',
+                'Pertanyaan' => 'Apa ibukota Indonesia?',
+                'Opsi A' => 'Jakarta',
+                'Opsi B' => 'Bandung',
+                'Opsi C' => 'Surabaya',
+                'Opsi D' => 'Semarang',
+                'Opsi E' => 'Medan',
+                'Kunci' => 'A',
+                'Bobot' => 1,
+            ],
+            [
+                'Tipe' => 'essay_1',
+                'Pertanyaan' => 'Jelaskan mengapa bumi itu bulat.',
+                'Opsi A' => '',
+                'Opsi B' => '',
+                'Opsi C' => '',
+                'Opsi D' => '',
+                'Opsi E' => '',
+                'Kunci' => '',
+                'Bobot' => 5,
+            ]
+        ];
+
+        return (new \Rap2hpoutre\FastExcel\FastExcel(collect($templateData)))
+            ->download('template_import_soal.xlsx');
+    }
+
+    public function importSoal(QuestionBank $bankSoal, Request $request)
+    {
+        $this->owned($bankSoal, $request);
+        $this->guardEditableBank($bankSoal);
+
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls'
+        ]);
+
+        $collection = (new \Rap2hpoutre\FastExcel\FastExcel)->import($request->file('file'));
+
+        $count = 0;
+        $headerMap = [];
+
+        foreach ($collection as $row) {
+            // Detect if this row is actually a header row (often happens if row 1 was a large merged title)
+            $isHeaderRow = false;
+            foreach ($row as $key => $val) {
+                $lowerVal = trim(strtolower((string)$val));
+                if (str_contains($lowerVal, 'pertanyaan') || str_contains($lowerVal, 'teks soal')) {
+                    $isHeaderRow = true;
+                    // Map headers based on this row's values
+                    foreach ($row as $k => $v) {
+                        $vLower = trim(strtolower((string)$v));
+                        if (str_contains($vLower, 'pertanyaan') || str_contains($vLower, 'soal')) $headerMap['pertanyaan'] = $k;
+                        if (str_contains($vLower, 'opsi a')) $headerMap['opsi a'] = $k;
+                        if (str_contains($vLower, 'opsi b')) $headerMap['opsi b'] = $k;
+                        if (str_contains($vLower, 'opsi c')) $headerMap['opsi c'] = $k;
+                        if (str_contains($vLower, 'opsi d')) $headerMap['opsi d'] = $k;
+                        if (str_contains($vLower, 'opsi e')) $headerMap['opsi e'] = $k;
+                        if (str_contains($vLower, 'kunci')) $headerMap['kunci'] = $k;
+                        if (str_contains($vLower, 'bobot')) $headerMap['bobot'] = $k;
+                        if (str_contains($vLower, 'tipe')) $headerMap['tipe'] = $k;
+                    }
+                    break;
+                }
+            }
+
+            if ($isHeaderRow) {
+                continue;
+            }
+
+            $normalizedRow = [];
+            if (empty($headerMap)) {
+                // Fallback to default headers from row 1
+                foreach ($row as $key => $value) {
+                    $normalizedRow[trim(strtolower($key))] = $value;
+                }
+            } else {
+                // Use dynamically discovered headers
+                foreach ($headerMap as $stdKey => $actualKey) {
+                    $normalizedRow[$stdKey] = $row[$actualKey] ?? null;
+                }
+            }
+
+            if (empty($normalizedRow['pertanyaan'])) {
+                continue;
+            }
+
+            $tipe = strtolower($normalizedRow['tipe'] ?? 'pg');
+            if (!in_array($tipe, ['pg', 'essay_1', 'essay_2'])) {
+                $tipe = 'pg';
+            }
+
+            BankQuestion::create([
+                'question_bank_id' => $bankSoal->id,
+                'tipe' => $tipe,
+                'pertanyaan' => $normalizedRow['pertanyaan'],
+                'opsi_a' => $normalizedRow['opsi a'] ?? null,
+                'opsi_b' => $normalizedRow['opsi b'] ?? null,
+                'opsi_c' => $normalizedRow['opsi c'] ?? null,
+                'opsi_d' => $normalizedRow['opsi d'] ?? null,
+                'opsi_e' => $normalizedRow['opsi e'] ?? null,
+                'kunci' => $normalizedRow['kunci'] ?? null,
+                'bobot' => is_numeric($normalizedRow['bobot'] ?? null) ? $normalizedRow['bobot'] : 1,
+            ]);
+            $count++;
+        }
+
+        return back()->with('success', "$count soal berhasil diimport dari Excel.");
+    }
+}
+

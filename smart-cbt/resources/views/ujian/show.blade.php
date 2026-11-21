@@ -1,0 +1,135 @@
+@php
+    $typeLabels = ['pg' => 'Pilihan Ganda', 'essay' => 'Essay', 'pg_essay' => 'Pilihan Ganda + Essay'];
+    $statusLabels = ['draft' => 'Draft', 'aktif' => 'Aktif', 'selesai' => 'Selesai'];
+@endphp
+<x-app-layout>
+    <x-slot name="header">
+        <div>
+            {{-- Breadcrumb --}}
+            <nav class="mb-1 flex items-center gap-2 text-xs text-slate-500">
+                <a href="{{ ($isGuruView ?? false) ? route('guru.dashboard') : route('dashboard') }}" class="hover:text-slate-800">Dashboard</a>
+                <span>/</span>
+                <a href="{{ ($isGuruView ?? false) ? route('guru.ujian.index') : route('ujian.index') }}" class="hover:text-slate-800">Ujian</a>
+                <span>/</span>
+                <span class="font-medium text-slate-800">Detail Ujian</span>
+            </nav>
+            <h2 class="text-xl font-bold leading-tight text-slate-900">
+                Detail Ujian: {{ $exam->nama }}
+            </h2>
+            <p class="mt-0.5 text-xs text-slate-500">
+                Informasi jadwal, konfigurasi paket ujian, penugasan pengawas, dan statistik butir soal.
+            </p>
+        </div>
+    </x-slot>
+
+    <div class="py-8">
+        <div class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8">
+
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
+                <div class="flex flex-wrap items-center gap-3">
+                    @if ($isGuruView ?? false)
+                        <a href="{{ route('guru.soal.index', $exam) }}" class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            Kelola Soal
+                        </a>
+                        <a href="{{ route('guru.token.show', $exam) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                            Token & QR Akses
+                        </a>
+                        <a href="{{ route('guru.ujian.export-soal', $exam) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-emerald-50 px-5 py-2.5 text-sm font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-100 border-emerald-200">
+                            Export Soal
+                        </a>
+                    @else
+                        <a href="{{ route('ujian.edit', $exam) }}" class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800">
+                            Edit Ujian
+                        </a>
+                        <a href="{{ route('ujian.export-soal', $exam) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-emerald-50 px-5 py-2.5 text-sm font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-100 border-emerald-200">
+                            Export Soal
+                        </a>
+                    @endif
+                    <a href="{{ ($isGuruView ?? false) ? route('guru.ujian.index') : route('ujian.index') }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                        &larr; Kembali
+                    </a>
+                </div>
+            </div>
+
+            {{-- Stat Cards --}}
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Soal</p>
+                    <p class="mt-2 text-2xl font-black text-slate-900">{{ $totalQuestions }} <span class="text-xs font-normal text-slate-500">butir</span></p>
+                    <p class="mt-1 text-xs text-slate-500">{{ $pgCount }} PG &bull; {{ $essayCount }} Essay</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Durasi Pengerjaan</p>
+                    <p class="mt-2 text-2xl font-black text-slate-900">{{ $exam->durasi_menit }} <span class="text-xs font-normal text-slate-500">menit</span></p>
+                    <p class="mt-1 text-xs text-slate-500">Tipe: {{ $typeLabels[$exam->jenis] ?? $exam->jenis }}</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Status Ujian</p>
+                    <p class="mt-2 text-2xl font-black {{ $exam->status === 'aktif' ? 'text-emerald-600' : 'text-amber-600' }}">
+                        {{ $statusLabels[$exam->status] ?? ucfirst($exam->status) }}
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">Token: {{ $exam->token_aktif ? 'Aktif (' . $exam->token . ')' : 'Nonaktif' }}</p>
+                </div>
+                @php
+                    $isGuru = $isGuruView ?? false;
+                    $monitoringUrl = $isGuru
+                        ? route('guru.monitoring.index', ['exam_id' => $exam->id])
+                        : route('hasil.index', ['exam_id' => $exam->id]);
+                @endphp
+                <a href="{{ $monitoringUrl }}" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm block hover:bg-slate-50 hover:border-blue-200 transition cursor-pointer group relative">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Peserta Selesai/Mulai</p>
+                    <p class="mt-2 text-2xl font-black text-blue-600">{{ $totalParticipants }} <span class="text-xs font-normal text-slate-500">siswa</span></p>
+                    <p class="mt-1 text-xs text-slate-500">{{ $isGuru ? 'Pantau peserta ujian ini' : 'Lihat hasil peserta ujian ini' }}</p>
+                    <div class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-hover:text-blue-500 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Informasi Ujian --}}
+            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div class="border-b border-slate-200 px-6 py-4">
+                    <h3 class="font-bold text-slate-900">Informasi Utama Paket Ujian</h3>
+                </div>
+                <div class="p-6">
+                    <div class="overflow-hidden rounded-xl border border-slate-200">
+                        <table class="min-w-full text-left text-sm">
+                            <tbody class="divide-y divide-slate-100">
+                                <tr>
+                                    <td class="w-1/3 bg-slate-50 px-4 py-3 font-semibold text-slate-600">Nama Ujian</td>
+                                    <td class="px-4 py-3 text-slate-900">{{ $exam->nama }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-slate-50 px-4 py-3 font-semibold text-slate-600">Mata Pelajaran</td>
+                                    <td class="px-4 py-3 text-slate-900">{{ $exam->mataPelajaran?->nama ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-slate-50 px-4 py-3 font-semibold text-slate-600">Guru Pembuat (PIC)</td>
+                                    <td class="px-4 py-3 text-slate-900">{{ $exam->guru?->nama ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-slate-50 px-4 py-3 font-semibold text-slate-600">Target Kelas</td>
+                                    <td class="px-4 py-3 text-slate-900">{{ $exam->kelasData?->nama_kelas ?? $exam->kelas ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-slate-50 px-4 py-3 font-semibold text-slate-600">Jadwal Pelaksanaan</td>
+                                    <td class="px-4 py-3 text-slate-900">{{ $exam->tanggal_mulai?->format('d/m/Y H:i') ?? '-' }} s/d {{ $exam->tanggal_selesai?->format('d/m/Y H:i') ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-slate-50 px-4 py-3 font-semibold text-slate-600">Ruangan & Pengawas</td>
+                                    <td class="px-4 py-3 text-slate-900">{{ $exam->ruangan ?: '-' }} (Pengawas: {{ $exam->guruPengawas?->nama ?? 'Belum ada' }})</td>
+                                </tr>
+                                <tr>
+                                    <td class="bg-slate-50 px-4 py-3 font-semibold text-slate-600 align-top">Deskripsi / Petunjuk</td>
+                                    <td class="px-4 py-3 whitespace-pre-line leading-relaxed text-slate-700">{{ $exam->deskripsi ?: 'Tidak ada deskripsi tambahan.' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</x-app-layout>

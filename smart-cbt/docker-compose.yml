@@ -1,0 +1,330 @@
+name: smart-cbt
+
+services:
+  smart-cbt-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smart-cbt-app:latest
+    container_name: smart-cbt-app
+    restart: always
+    working_dir: /var/www/html
+    command: php-fpm -F
+    volumes:
+      - smart-cbt-storage:/var/www/html/storage/app/public
+      - smart-cbt-cache:/var/www/html/bootstrap/cache
+      - smart-cbt-public:/var/www/html/public
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.docker
+        required: false
+    environment:
+      - APP_NAME=Smart-CBT
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY:-base64:uCmfgq9ixvn4I/mdbjuPsyd2uklgdD69Zd4HCffiajE=}
+      - APP_URL=${APP_URL:-http://localhost:8001}
+      - APP_TIMEZONE=Asia/Jakarta
+      - DB_CONNECTION=pgsql
+      - DB_HOST=smart-cbt-db
+      - DB_PORT=5432
+      - DB_DATABASE=${DOCKER_CBT_DB_DATABASE:-smart_cbt}
+      - DB_USERNAME=${DOCKER_CBT_DB_USERNAME:-smart_cbt}
+      - DB_PASSWORD=${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - SESSION_COOKIE=smart_cbt_session
+      - QUEUE_CONNECTION=redis
+      - REDIS_CLIENT=phpredis
+      - REDIS_HOST=smart-redis
+      - REDIS_PASSWORD=null
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+      - REDIS_PREFIX=smart_cbt_
+      - CBT_API_TOKEN=${CBT_API_TOKEN:-cbt_secret_token_almadinah_2026}
+      - SMART_PLUS_API_BASE_URL=${DOCKER_SMART_PLUS_API_BASE_URL:-http://smart-web/api/v1}
+      - SMART_PLUS_API_TOKEN=${SMART_PLUS_API_TOKEN:-smart_secret_token_almadinah_2026}
+    depends_on:
+      smart-cbt-db:
+        condition: service_healthy
+      smart-redis:
+        condition: service_healthy
+    networks:
+      - smart-network
+
+  smart-cbt-app-2:
+    image: smart-cbt-app:latest
+    container_name: smart-cbt-app-2
+    restart: always
+    working_dir: /var/www/html
+    command: php-fpm -F
+    volumes:
+      - smart-cbt-storage:/var/www/html/storage/app/public
+      - smart-cbt-cache:/var/www/html/bootstrap/cache
+      - smart-cbt-public:/var/www/html/public
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.docker
+        required: false
+    environment:
+      - APP_NAME=Smart-CBT
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY:-base64:uCmfgq9ixvn4I/mdbjuPsyd2uklgdD69Zd4HCffiajE=}
+      - APP_URL=${APP_URL:-http://localhost:8001}
+      - APP_TIMEZONE=Asia/Jakarta
+      - DB_CONNECTION=pgsql
+      - DB_HOST=smart-cbt-db
+      - DB_PORT=5432
+      - DB_DATABASE=${DOCKER_CBT_DB_DATABASE:-smart_cbt}
+      - DB_USERNAME=${DOCKER_CBT_DB_USERNAME:-smart_cbt}
+      - DB_PASSWORD=${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - SESSION_COOKIE=smart_cbt_session
+      - QUEUE_CONNECTION=redis
+      - REDIS_CLIENT=phpredis
+      - REDIS_HOST=smart-redis
+      - REDIS_PASSWORD=null
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+      - REDIS_PREFIX=smart_cbt_
+      - CBT_API_TOKEN=${CBT_API_TOKEN:-cbt_secret_token_almadinah_2026}
+      - SMART_PLUS_API_BASE_URL=${DOCKER_SMART_PLUS_API_BASE_URL:-http://smart-web/api/v1}
+      - SMART_PLUS_API_TOKEN=${SMART_PLUS_API_TOKEN:-smart_secret_token_almadinah_2026}
+    depends_on:
+      smart-cbt-app:
+        condition: service_started
+      smart-cbt-db:
+        condition: service_healthy
+      smart-redis:
+        condition: service_healthy
+    networks:
+      - smart-network
+
+  smart-cbt-app-3:
+    image: smart-cbt-app:latest
+    container_name: smart-cbt-app-3
+    restart: always
+    working_dir: /var/www/html
+    command: php-fpm -F
+    volumes:
+      - smart-cbt-storage:/var/www/html/storage/app/public
+      - smart-cbt-cache:/var/www/html/bootstrap/cache
+      - smart-cbt-public:/var/www/html/public
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.docker
+        required: false
+    environment:
+      - APP_NAME=Smart-CBT
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY:-base64:uCmfgq9ixvn4I/mdbjuPsyd2uklgdD69Zd4HCffiajE=}
+      - APP_URL=${APP_URL:-http://localhost:8001}
+      - APP_TIMEZONE=Asia/Jakarta
+      - DB_CONNECTION=pgsql
+      - DB_HOST=smart-cbt-db
+      - DB_PORT=5432
+      - DB_DATABASE=${DOCKER_CBT_DB_DATABASE:-smart_cbt}
+      - DB_USERNAME=${DOCKER_CBT_DB_USERNAME:-smart_cbt}
+      - DB_PASSWORD=${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - SESSION_COOKIE=smart_cbt_session
+      - QUEUE_CONNECTION=redis
+      - REDIS_CLIENT=phpredis
+      - REDIS_HOST=smart-redis
+      - REDIS_PASSWORD=null
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+      - REDIS_PREFIX=smart_cbt_
+      - CBT_API_TOKEN=${CBT_API_TOKEN:-cbt_secret_token_almadinah_2026}
+      - SMART_PLUS_API_BASE_URL=${DOCKER_SMART_PLUS_API_BASE_URL:-http://smart-web/api/v1}
+      - SMART_PLUS_API_TOKEN=${SMART_PLUS_API_TOKEN:-smart_secret_token_almadinah_2026}
+    depends_on:
+      smart-cbt-app:
+        condition: service_started
+      smart-cbt-db:
+        condition: service_healthy
+      smart-redis:
+        condition: service_healthy
+    networks:
+      - smart-network
+
+  smart-cbt-db:
+    image: postgres:16-alpine
+    container_name: smart-cbt-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DOCKER_CBT_DB_DATABASE:-smart_cbt}
+      POSTGRES_USER: ${DOCKER_CBT_DB_USERNAME:-smart_cbt}
+      POSTGRES_PASSWORD: ${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
+    ports:
+      - "${CBT_DB_PORT:-5432}:5432"
+    volumes:
+      - smart-cbt-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DOCKER_CBT_DB_USERNAME:-smart_cbt} -d ${DOCKER_CBT_DB_DATABASE:-smart_cbt}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - smart-network
+
+  smart-redis:
+    image: redis:7-alpine
+    container_name: smart-redis
+    restart: always
+    command: redis-server --appendonly yes
+    ports:
+      - "${CBT_REDIS_PORT:-6380}:6379"
+    volumes:
+      - smart-cbt-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - smart-network
+
+  smart-cbt-web:
+    image: nginx:alpine
+    container_name: smart-cbt-web
+    restart: always
+    ports:
+      - "${CBT_WEB_PORT:-8001}:80"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - smart-cbt-public:/var/www/html/public:ro
+      - smart-cbt-storage:/var/www/html/storage/app/public:ro
+    depends_on:
+      - smart-cbt-app
+      - smart-cbt-app-2
+      - smart-cbt-app-3
+    networks:
+      - smart-network
+
+  smart-cbt-queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smart-cbt-queue
+    restart: always
+    working_dir: /var/www/html
+    command: php artisan queue:work redis --sleep=3 --tries=3 --timeout=90
+    volumes:
+      - smart-cbt-storage:/var/www/html/storage/app/public
+      - smart-cbt-cache:/var/www/html/bootstrap/cache
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.docker
+        required: false
+    environment:
+      - APP_NAME=Smart-CBT
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY:-base64:uCmfgq9ixvn4I/mdbjuPsyd2uklgdD69Zd4HCffiajE=}
+      - APP_URL=${APP_URL:-http://localhost:8001}
+      - APP_TIMEZONE=Asia/Jakarta
+      - DB_CONNECTION=pgsql
+      - DB_HOST=smart-cbt-db
+      - DB_PORT=5432
+      - DB_DATABASE=${DOCKER_CBT_DB_DATABASE:-smart_cbt}
+      - DB_USERNAME=${DOCKER_CBT_DB_USERNAME:-smart_cbt}
+      - DB_PASSWORD=${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - SESSION_COOKIE=smart_cbt_session
+      - QUEUE_CONNECTION=redis
+      - REDIS_CLIENT=phpredis
+      - REDIS_HOST=smart-redis
+      - REDIS_PASSWORD=null
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+      - REDIS_PREFIX=smart_cbt_
+    depends_on:
+      smart-cbt-app:
+        condition: service_started
+      smart-cbt-db:
+        condition: service_healthy
+      smart-redis:
+        condition: service_healthy
+    networks:
+      - smart-network
+
+  smart-cbt-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smart-cbt-scheduler
+    restart: always
+    working_dir: /var/www/html
+    command: php artisan schedule:work
+    volumes:
+      - smart-cbt-storage:/var/www/html/storage/app/public
+      - smart-cbt-cache:/var/www/html/bootstrap/cache
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.docker
+        required: false
+    environment:
+      - APP_NAME=Smart-CBT
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY:-base64:uCmfgq9ixvn4I/mdbjuPsyd2uklgdD69Zd4HCffiajE=}
+      - APP_URL=${APP_URL:-http://localhost:8001}
+      - APP_TIMEZONE=Asia/Jakarta
+      - DB_CONNECTION=pgsql
+      - DB_HOST=smart-cbt-db
+      - DB_PORT=5432
+      - DB_DATABASE=${DOCKER_CBT_DB_DATABASE:-smart_cbt}
+      - DB_USERNAME=${DOCKER_CBT_DB_USERNAME:-smart_cbt}
+      - DB_PASSWORD=${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - SESSION_COOKIE=smart_cbt_session
+      - QUEUE_CONNECTION=redis
+      - REDIS_CLIENT=phpredis
+      - REDIS_HOST=smart-redis
+      - REDIS_PASSWORD=null
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+      - REDIS_PREFIX=smart_cbt_
+    depends_on:
+      - smart-cbt-app
+    networks:
+      - smart-network
+
+  smart-cbt-k6:
+    image: grafana/k6:latest
+    container_name: smart-cbt-k6
+    volumes:
+      - ./tests/k6:/scripts
+    environment:
+      - K6_INSECURE_SKIP_TLS_VERIFY=true
+    networks:
+      - smart-network
+    profiles:
+      - loadtest
+
+volumes:
+  smart-cbt-storage:
+    name: ${CBT_VOLUME_STORAGE:-smart-cbt_smart-cbt-storage}
+  smart-cbt-cache:
+    name: ${CBT_VOLUME_CACHE:-smart-cbt_smart-cbt-cache}
+  smart-cbt-public:
+    name: ${CBT_VOLUME_PUBLIC:-smart-cbt_smart-cbt-public}
+  smart-cbt-postgres-data:
+    name: ${CBT_VOLUME_PGDATA:-smart-cbt_smart-cbt-pgdata}
+  smart-cbt-redis-data:
+
+networks:
+  smart-network:
+    driver: bridge
