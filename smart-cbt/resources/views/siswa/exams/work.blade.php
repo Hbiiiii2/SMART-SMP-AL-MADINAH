@@ -132,7 +132,7 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800 antialiased" 
       x-data="{ navOpen: false, zoomImage: null, showConfirmModal: false, unansweredCount: 0, pendingCount: 0, activePhotoCount: 0, failedPhotoCount: 0, submitErrorMessage: null }"
-      @keydown.escape.window="navOpen = false; zoomImage = null"
+      @keydown.escape.window="navOpen = false; zoomImage = null; if (typeof closeEmbeddedCamera === 'function') closeEmbeddedCamera();"
       @open-submit-modal.window="unansweredCount = $event.detail.unansweredCount; pendingCount = $event.detail.pendingCount; activePhotoCount = $event.detail.activePhotoCount || 0; failedPhotoCount = $event.detail.failedPhotoCount || 0; showConfirmModal = true;"
       @close-submit-modal.window="showConfirmModal = false;">
     <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-sm">
@@ -339,37 +339,40 @@
                                     <div class="flex flex-wrap gap-2">
                                         <button type="button"
                                                 data-camera-btn="{{ $question->id }}"
-                                                onclick="triggerPhotoPicker({{ $question->id }}, 'camera')"
+                                                onclick="openEmbeddedCamera({{ $question->id }})"
                                                 class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-95 transition min-h-[44px]">
                                             <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                            <span>Ambil Foto</span>
+                                            <span>Kamera Langsung</span>
                                         </button>
                                         <button type="button"
                                                 data-gallery-btn="{{ $question->id }}"
                                                 onclick="triggerPhotoPicker({{ $question->id }}, 'gallery')"
                                                 class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition min-h-[44px]">
                                             <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                            <span>Pilih Galeri</span>
+                                            <span>Pilih Galeri / File</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                {{-- Input File Terpisah untuk Kamera (capture) dan Galeri (multiple) --}}
+                                {{-- Input File Terpisah (sr-only agar tetap kompatibel dengan WebView Android Exambro) --}}
                                 <input type="file"
-                                       class="hidden"
-                                       accept="image/jpeg,image/png,image/webp"
+                                       class="sr-only"
+                                       tabindex="-1"
+                                       accept="image/jpeg,image/png,image/webp,image/*"
                                        capture="environment"
                                        data-photo-input="camera"
                                        data-question-id="{{ $question->id }}">
                                 <input type="file"
-                                       class="hidden"
-                                       accept="image/jpeg,image/png,image/webp"
+                                       class="sr-only"
+                                       tabindex="-1"
+                                       accept="image/jpeg,image/png,image/webp,image/*"
                                        multiple
                                        data-photo-input="gallery"
                                        data-question-id="{{ $question->id }}">
                                 <input type="file"
-                                       class="hidden"
-                                       accept="image/jpeg,image/png,image/webp"
+                                       class="sr-only"
+                                       tabindex="-1"
+                                       accept="image/jpeg,image/png,image/webp,image/*"
                                        data-photo-input="replace"
                                        data-question-id="{{ $question->id }}">
 
@@ -495,6 +498,21 @@
         </div>
     </aside>
 
+    @php
+        $startedAt = $attempt->started_at ?? now();
+        $calculatedDeadline = isset($deadline) && $deadline instanceof \Illuminate\Support\Carbon
+            ? $deadline
+            : $startedAt->copy()->addMinutes((int) $exam->durasi_menit);
+        if ($exam->tanggal_selesai && $exam->tanggal_selesai->lt($calculatedDeadline)) {
+            $calculatedDeadline = $exam->tanggal_selesai->copy();
+        }
+        $initialRemainingSeconds = isset($remainingSeconds)
+            ? max(0, (int) $remainingSeconds)
+            : max(0, $calculatedDeadline->getTimestamp() - now()->getTimestamp());
+        $initialServerNowMs = $serverNowMs ?? (now()->getTimestamp() * 1000);
+        $initialDeadlineMs = $deadlineMs ?? ($calculatedDeadline->getTimestamp() * 1000);
+    @endphp
+
     <script>
         /**
          * ============================================================================
@@ -532,6 +550,13 @@
         const STORAGE_KEY = `cbt_pending_answers_${ATTEMPT_ID}`;
         const SEQ_STORAGE_KEY = `cbt_question_seqs_${ATTEMPT_ID}`;
         const MODE_STORAGE_KEY = `cbt_essay_modes_${ATTEMPT_ID}`;
+        const INITIAL_REMAINING_SECONDS = {{ $initialRemainingSeconds }};
+        const SERVER_NOW_MS = {{ $initialServerNowMs }};
+        const SERVER_DEADLINE_MS = {{ $initialDeadlineMs }};
+        const TIMER_ORIGIN_PERF = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+            ? performance.now()
+            : null;
+        const TIMER_ORIGIN_DATE = Date.now();
         const SERVER_SEQS = @json($answerSeqs ?? []);
         const INITIAL_ESSAY_MODES = @json($answerTypes ?? []);
         const INITIAL_ATTACHMENTS = @json($answerAttachments ?? []);
@@ -563,6 +588,7 @@
             pageUnloading: false,             // Flag untuk page unload
             isSubmitting: false,              // Flag untuk submit
             submitStarted: false,             // Mutex global untuk submit/timer race condition
+            timeExpiredTriggered: false,      // Mutex untuk mencegah timeExpired berjalan ganda
         };
 
         // DOM Elements
@@ -603,7 +629,8 @@
         function getPendingAnswersFromStorage() {
             try {
                 const stored = localStorage.getItem(STORAGE_KEY);
-                return stored ? JSON.parse(stored) : {};
+                const parsed = stored ? JSON.parse(stored) : {};
+                return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
             } catch (error) {
                 console.error('Error reading from localStorage:', error);
                 return {};
@@ -616,7 +643,8 @@
         function getPendingSeqsFromStorage() {
             try {
                 const stored = localStorage.getItem(SEQ_STORAGE_KEY);
-                return stored ? JSON.parse(stored) : {};
+                const parsed = stored ? JSON.parse(stored) : {};
+                return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
             } catch (error) {
                 console.error('Error reading seqs from localStorage:', error);
                 return {};
@@ -1133,7 +1161,8 @@
         function loadSavedEssayModes() {
             try {
                 const raw = localStorage.getItem(MODE_STORAGE_KEY);
-                return raw ? JSON.parse(raw) : {};
+                const parsed = raw ? JSON.parse(raw) : {};
+                return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
             } catch (e) {
                 return {};
             }
@@ -1278,7 +1307,7 @@
                     replaceBtn.type = 'button';
                     replaceBtn.className = 'flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100';
                     replaceBtn.textContent = 'Ganti';
-                    replaceBtn.onclick = () => triggerReplacePhoto(qId, item.id);
+                    replaceBtn.onclick = () => openEmbeddedCamera(qId, item.id);
                     actions.appendChild(replaceBtn);
 
                     const deleteBtn = document.createElement('button');
@@ -1337,6 +1366,349 @@
                 input.value = '';
                 input.dataset.replaceAttachmentId = String(attachmentId);
                 input.click();
+            }
+        }
+
+        const cameraState = {
+            active: false,
+            questionId: null,
+            replaceAttachmentId: null,
+            stream: null,
+            facingMode: 'environment',
+            capturedBlob: null,
+            capturedPreviewUrl: null,
+        };
+
+        function getCameraModalElements() {
+            return {
+                modal: document.getElementById('embedded-camera-modal'),
+                questionBadge: document.getElementById('embedded-camera-question-badge'),
+                video: document.getElementById('embedded-camera-video'),
+                canvas: document.getElementById('embedded-camera-canvas'),
+                preview: document.getElementById('embedded-camera-preview'),
+                loading: document.getElementById('embedded-camera-loading'),
+                errorBox: document.getElementById('embedded-camera-error'),
+                errorText: document.getElementById('embedded-camera-error-text'),
+                liveActions: document.getElementById('embedded-camera-live-actions'),
+                previewActions: document.getElementById('embedded-camera-preview-actions'),
+                switchBtn: document.getElementById('embedded-camera-switch-btn'),
+                captureBtn: document.getElementById('embedded-camera-capture-btn'),
+            };
+        }
+
+        function stopEmbeddedCameraStream() {
+            if (cameraState.stream) {
+                cameraState.stream.getTracks().forEach(track => {
+                    try { track.stop(); } catch (e) {}
+                });
+                cameraState.stream = null;
+            }
+            const els = getCameraModalElements();
+            if (els.video) {
+                try {
+                    els.video.pause();
+                    els.video.srcObject = null;
+                } catch (e) {}
+            }
+        }
+
+        function revokeCapturedCameraPreview() {
+            if (cameraState.capturedPreviewUrl && cameraState.capturedPreviewUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(cameraState.capturedPreviewUrl);
+            }
+            cameraState.capturedPreviewUrl = null;
+            cameraState.capturedBlob = null;
+        }
+
+        function setEmbeddedCameraUIMode(mode) {
+            const els = getCameraModalElements();
+            if (!els.modal) return;
+
+            if (els.video) {
+                els.video.classList.toggle('hidden', mode !== 'live');
+                els.video.style.display = mode === 'live' ? 'block' : 'none';
+            }
+            if (els.preview) {
+                els.preview.classList.toggle('hidden', mode !== 'preview');
+                els.preview.style.display = mode === 'preview' ? 'block' : 'none';
+            }
+            if (els.loading) {
+                els.loading.classList.toggle('hidden', mode !== 'loading');
+                els.loading.style.display = mode === 'loading' ? 'flex' : 'none';
+            }
+            if (els.errorBox) {
+                els.errorBox.classList.toggle('hidden', mode !== 'error');
+                els.errorBox.style.display = mode === 'error' ? 'block' : 'none';
+            }
+            if (els.liveActions) {
+                els.liveActions.classList.toggle('hidden', mode !== 'live');
+                els.liveActions.style.display = mode === 'live' ? 'flex' : 'none';
+            }
+            if (els.previewActions) {
+                els.previewActions.classList.toggle('hidden', mode !== 'preview');
+                els.previewActions.style.display = mode === 'preview' ? 'flex' : 'none';
+            }
+        }
+
+        async function requestMediaStreamWithConstraints(constraints) {
+            if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+                return navigator.mediaDevices.getUserMedia(constraints);
+            }
+            const legacyGetUserMedia = navigator.getUserMedia
+                || navigator.webkitGetUserMedia
+                || navigator.mozGetUserMedia;
+            if (!legacyGetUserMedia) {
+                throw new Error('Kamera web (getUserMedia) tidak didukung di browser ini.');
+            }
+            return new Promise((resolve, reject) => {
+                legacyGetUserMedia.call(navigator, constraints, resolve, reject);
+            });
+        }
+
+        async function openEmbeddedCamera(questionId, replaceAttachmentId = null) {
+            const qId = String(questionId);
+            showPhotoError(qId, null);
+
+            if (!replaceAttachmentId) {
+                const list = state.essayPhotos[qId] || [];
+                if (list.length >= MAX_ESSAY_PHOTOS) {
+                    showPhotoError(qId, `Maksimal ${MAX_ESSAY_PHOTOS} foto untuk setiap soal essay.`);
+                    return;
+                }
+            }
+
+            cameraState.active = true;
+            cameraState.questionId = qId;
+            cameraState.replaceAttachmentId = replaceAttachmentId ? String(replaceAttachmentId) : null;
+            revokeCapturedCameraPreview();
+
+            const els = getCameraModalElements();
+            if (!els.modal) {
+                if (replaceAttachmentId) {
+                    triggerReplacePhoto(qId, replaceAttachmentId);
+                } else {
+                    triggerPhotoPicker(qId, 'camera');
+                }
+                return;
+            }
+
+            const panel = document.querySelector(`.question-panel[data-question-id="${qId}"]`);
+            if (els.questionBadge) {
+                const qNum = panel?.dataset?.question || '';
+                els.questionBadge.textContent = qNum ? `Soal ${qNum}` : 'Jawaban Essay';
+            }
+
+            els.modal.classList.remove('hidden');
+            els.modal.classList.add('flex');
+            els.modal.style.display = 'flex';
+            await startEmbeddedCameraStream();
+        }
+
+        async function startEmbeddedCameraStream() {
+            const els = getCameraModalElements();
+            if (!cameraState.active || !els.modal) return;
+
+            stopEmbeddedCameraStream();
+            revokeCapturedCameraPreview();
+            setEmbeddedCameraUIMode('loading');
+
+            try {
+                let stream;
+                try {
+                    stream = await requestMediaStreamWithConstraints({
+                        video: {
+                            facingMode: { ideal: cameraState.facingMode },
+                            width: { ideal: 1600 },
+                            height: { ideal: 1200 },
+                        },
+                        audio: false,
+                    });
+                } catch (constraintErr) {
+                    if (constraintErr && (constraintErr.name === 'NotAllowedError' || constraintErr.name === 'PermissionDeniedError' || constraintErr.name === 'SecurityError')) {
+                        throw constraintErr;
+                    }
+                    stream = await requestMediaStreamWithConstraints({ video: true, audio: false });
+                }
+
+                if (!cameraState.active) {
+                    stream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} });
+                    return;
+                }
+
+                cameraState.stream = stream;
+                if (els.video) {
+                    els.video.setAttribute('playsinline', 'true');
+                    els.video.muted = true;
+                    els.video.srcObject = stream;
+                    await els.video.play().catch(() => {});
+                }
+                setEmbeddedCameraUIMode('live');
+            } catch (err) {
+                console.warn('Embedded camera error:', err);
+                if (els.errorText) {
+                    if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                        els.errorText.textContent = 'Kamera langsung memerlukan koneksi HTTPS atau izin kamera Exambro. Gunakan tombol fallback di bawah untuk mengambil atau memilih foto jawaban.';
+                    } else if (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+                        els.errorText.textContent = 'Akses kamera diblokir oleh aplikasi Exambro/browser. Izinkan akses kamera pada pengaturan aplikasi atau gunakan tombol fallback di bawah.';
+                    } else if (err && err.name === 'NotFoundError') {
+                        els.errorText.textContent = 'Perangkat kamera tidak ditemukan. Anda masih dapat memilih foto jawaban dari perangkat/galeri.';
+                    } else {
+                        els.errorText.textContent = (err && err.message)
+                            ? `Kamera langsung tidak dapat dibuka (${err.message}). Gunakan tombol fallback di bawah.`
+                            : 'Kamera langsung tidak dapat dibuka di browser ini. Gunakan tombol fallback di bawah.';
+                    }
+                }
+                setEmbeddedCameraUIMode('error');
+            }
+        }
+
+        async function switchEmbeddedCameraFacing() {
+            cameraState.facingMode = cameraState.facingMode === 'environment' ? 'user' : 'environment';
+            await startEmbeddedCameraStream();
+        }
+
+        function dataUrlToJpegBlob(dataUrl) {
+            const parts = dataUrl.split(',');
+            const mimeMatch = (parts[0] || '').match(/:(.*?);/);
+            const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+            const binary = atob(parts[1] || '');
+            const len = binary.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return new Blob([bytes], { type: mime });
+        }
+
+        function captureEmbeddedCameraPhoto() {
+            const els = getCameraModalElements();
+            if (!els.video || !els.canvas || !cameraState.stream) return;
+
+            const rawW = els.video.videoWidth || 1280;
+            const rawH = els.video.videoHeight || 720;
+            const maxSide = Math.max(rawW, rawH);
+            const scale = maxSide > COMPRESS_MAX_EDGE ? (COMPRESS_MAX_EDGE / maxSide) : 1;
+            const targetW = Math.max(1, Math.round(rawW * scale));
+            const targetH = Math.max(1, Math.round(rawH * scale));
+
+            els.canvas.width = targetW;
+            els.canvas.height = targetH;
+            const ctx = els.canvas.getContext('2d');
+            if (!ctx) return;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, targetW, targetH);
+            ctx.drawImage(els.video, 0, 0, targetW, targetH);
+
+            const onBlobReady = (blob) => {
+                if (!blob) {
+                    if (els.errorText) {
+                        els.errorText.textContent = 'Gagal mengambil gambar dari kamera. Silakan coba lagi atau gunakan fallback perangkat.';
+                    }
+                    setEmbeddedCameraUIMode('error');
+                    return;
+                }
+                revokeCapturedCameraPreview();
+                cameraState.capturedBlob = blob;
+                cameraState.capturedPreviewUrl = URL.createObjectURL(blob);
+                if (els.preview) {
+                    els.preview.src = cameraState.capturedPreviewUrl;
+                }
+                setEmbeddedCameraUIMode('preview');
+            };
+
+            if (typeof els.canvas.toBlob === 'function') {
+                els.canvas.toBlob((blob) => {
+                    if (blob) {
+                        onBlobReady(blob);
+                    } else {
+                        try {
+                            onBlobReady(dataUrlToJpegBlob(els.canvas.toDataURL('image/jpeg', COMPRESS_JPEG_QUALITY)));
+                        } catch (e) {
+                            onBlobReady(null);
+                        }
+                    }
+                }, 'image/jpeg', COMPRESS_JPEG_QUALITY);
+            } else {
+                try {
+                    onBlobReady(dataUrlToJpegBlob(els.canvas.toDataURL('image/jpeg', COMPRESS_JPEG_QUALITY)));
+                } catch (e) {
+                    onBlobReady(null);
+                }
+            }
+        }
+
+        function retakeEmbeddedCameraPhoto() {
+            revokeCapturedCameraPreview();
+            const els = getCameraModalElements();
+            if (els.preview) {
+                els.preview.src = '';
+            }
+            if (cameraState.stream) {
+                setEmbeddedCameraUIMode('live');
+                if (els.video) els.video.play().catch(() => {});
+            } else {
+                startEmbeddedCameraStream();
+            }
+        }
+
+        function confirmEmbeddedCameraPhoto() {
+            const qId = cameraState.questionId;
+            const replaceId = cameraState.replaceAttachmentId;
+            const blob = cameraState.capturedBlob;
+
+            if (!qId || !blob) {
+                closeEmbeddedCamera();
+                return;
+            }
+
+            const fileName = `kamera_jawaban_${Date.now()}.jpg`;
+            let fileObj;
+            try {
+                fileObj = new File([blob], fileName, { type: 'image/jpeg' });
+            } catch (e) {
+                blob.name = fileName;
+                fileObj = blob;
+            }
+
+            closeEmbeddedCamera();
+            handlePhotoFilesSelected(qId, [fileObj], replaceId);
+        }
+
+        function triggerFallbackCameraInput() {
+            const qId = cameraState.questionId;
+            const replaceId = cameraState.replaceAttachmentId;
+            if (!qId) return;
+
+            if (replaceId) {
+                triggerReplacePhoto(qId, replaceId);
+            } else {
+                triggerPhotoPicker(qId, 'camera');
+            }
+            closeEmbeddedCamera();
+        }
+
+        function triggerFallbackGalleryInput() {
+            const qId = cameraState.questionId;
+            if (!qId) return;
+
+            triggerPhotoPicker(qId, 'gallery');
+            closeEmbeddedCamera();
+        }
+
+        function closeEmbeddedCamera() {
+            cameraState.active = false;
+            cameraState.questionId = null;
+            cameraState.replaceAttachmentId = null;
+            stopEmbeddedCameraStream();
+            revokeCapturedCameraPreview();
+
+            const els = getCameraModalElements();
+            if (els.preview) els.preview.src = '';
+            if (els.modal) {
+                els.modal.classList.add('hidden');
+                els.modal.classList.remove('flex');
+                els.modal.style.display = 'none';
             }
         }
 
@@ -1818,9 +2190,61 @@
         }
 
         /**
+         * Hitung sisa waktu ujian berdasarkan sisa waktu server saat halaman dimuat
+         * dan elapsed time monotonik (independen terhadap perbedaan jam client vs container server).
+         */
+        function getRemainingTimeMs() {
+            const totalMs = Math.max(0, Number(INITIAL_REMAINING_SECONDS) || 0) * 1000;
+            const elapsedPerf = TIMER_ORIGIN_PERF !== null
+                ? Math.max(0, performance.now() - TIMER_ORIGIN_PERF)
+                : 0;
+            const elapsedDate = Math.max(0, Date.now() - TIMER_ORIGIN_DATE);
+            const elapsedMs = Math.max(elapsedPerf, elapsedDate);
+
+            return Math.max(0, totalMs - elapsedMs);
+        }
+
+        function renderCountdownText(remainingMs) {
+            if (!elements.countdown) return;
+            const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+
+            elements.countdown.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateCountdownDisplay() {
+            const remaining = getRemainingTimeMs();
+            renderCountdownText(remaining);
+
+            if (remaining <= 0) {
+                if (countdownTimer) {
+                    clearInterval(countdownTimer);
+                    countdownTimer = null;
+                }
+                timeExpired();
+            }
+        }
+
+        function startCountdownTimer() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+            updateCountdownDisplay();
+            if (getRemainingTimeMs() > 0) {
+                countdownTimer = setInterval(updateCountdownDisplay, 1000);
+            }
+        }
+
+        /**
          * Auto submit ketika waktu habis
          */
         async function timeExpired() {
+            if (state.timeExpiredTriggered || state.submitStarted || state.isSubmitting) {
+                return;
+            }
+            state.timeExpiredTriggered = true;
             console.log('Waktu ujian habis');
             state.pageUnloading = true;
             
@@ -1934,88 +2358,95 @@
          * Initialize dengan load dari localStorage dan database
          */
         function initialize() {
-            // Load jawaban dari database yang sudah tersimpan
-            const dbAnswers = getCurrentAnswers();
-            Object.entries(dbAnswers).forEach(([qId, answer]) => {
-                if (answer) {  // Hanya jika ada jawaban
-                    state.savedAnswers.set(String(qId), answer);
-                }
-            });
+            // Set deadline (relatif terhadap sisa waktu server agar kebal perbedaan jam client vs Docker server)
+            deadline = Date.now() + (Math.max(0, Number(INITIAL_REMAINING_SECONDS) || 0) * 1000);
+            renderCountdownText(Math.max(0, Number(INITIAL_REMAINING_SECONDS) || 0) * 1000);
 
-            // Load pending answers & sequences dari localStorage (jawaban yang belum berhasil disimpan)
-            const storedPending = getPendingAnswersFromStorage();
-            const storedSeqs = getPendingSeqsFromStorage();
-            state.pendingAnswers = { ...storedPending };
-            state.pendingSeqs = { ...storedSeqs };
-
-            // RECOVERY MECHANISM:
-            // Safely initialize monotonic sequences from authoritative server state and local state
-            // Ensures sequence is never reset to 1 when localStorage is cleared, switching browsers, or devices
-            state.questionSequences = {};
-            
-            // 1. Seed from authoritative server-side sequences
-            if (typeof SERVER_SEQS === 'object' && SERVER_SEQS !== null) {
-                Object.entries(SERVER_SEQS).forEach(([qId, sSeq]) => {
-                    const parsed = parseInt(sSeq, 10);
-                    if (!isNaN(parsed) && parsed > 0) {
-                        state.questionSequences[String(qId)] = parsed;
+            try {
+                // Load jawaban dari database yang sudah tersimpan
+                const dbAnswers = getCurrentAnswers();
+                Object.entries(dbAnswers).forEach(([qId, answer]) => {
+                    if (answer) {  // Hanya jika ada jawaban
+                        state.savedAnswers.set(String(qId), answer);
                     }
                 });
-            }
 
-            // 2. Reconcile with local storage sequences (taking the higher sequence if local has un-synced edits)
-            Object.entries(storedSeqs).forEach(([qId, lSeq]) => {
-                const parsed = parseInt(lSeq, 10);
-                if (!isNaN(parsed) && parsed > 0) {
-                    const existing = state.questionSequences[String(qId)] || 0;
-                    state.questionSequences[String(qId)] = Math.max(existing, parsed);
-                }
-            });
+                // Load pending answers & sequences dari localStorage (jawaban yang belum berhasil disimpan)
+                const storedPending = getPendingAnswersFromStorage();
+                const storedSeqs = getPendingSeqsFromStorage();
+                state.pendingAnswers = { ...storedPending };
+                state.pendingSeqs = { ...storedSeqs };
 
-            // 3. Prevent stale recovered local answers from overwriting newer server answers:
-            // If local pending answer has a sequence strictly lower than authoritative server sequence,
-            // discard the stale local pending answer.
-            Object.keys(state.pendingAnswers).forEach(qId => {
-                const sSeq = (SERVER_SEQS && SERVER_SEQS[qId]) ? parseInt(SERVER_SEQS[qId], 10) : 0;
-                const lSeq = state.pendingSeqs[qId] ? parseInt(state.pendingSeqs[qId], 10) : 0;
-                if (sSeq > 0 && lSeq > 0 && lSeq < sSeq) {
-                    delete state.pendingAnswers[qId];
-                    delete state.pendingSeqs[qId];
-                }
-            });
-            savePendingAnswersToStorage(state.pendingAnswers, state.pendingSeqs);
-
-            // Reconstruct changedQuestions dari pending answers
-            Object.keys(state.pendingAnswers).forEach(qId => {
-                state.changedQuestions.add(qId);
-            });
-
-            console.log('Initialized state:');
-            console.log('- Saved answers from DB:', state.savedAnswers.size);
-            console.log('- Pending answers from localStorage:', Object.keys(state.pendingAnswers).length);
-            console.log('- Changed questions:', state.changedQuestions.size);
-
-            // Restore UI from localStorage pending answers
-            if (Object.keys(state.pendingAnswers).length > 0) {
-                Object.entries(state.pendingAnswers).forEach(([qId, val]) => {
-                    const inputs = elements.form.querySelectorAll(`[name="answers[${qId}]"]`);
-                    inputs.forEach(input => {
-                        if (input.type === 'radio') {
-                            if (input.value === val) {
-                                input.checked = true;
-                            }
-                        } else {
-                            input.value = val;
+                // RECOVERY MECHANISM:
+                // Safely initialize monotonic sequences from authoritative server state and local state
+                // Ensures sequence is never reset to 1 when localStorage is cleared, switching browsers, or devices
+                state.questionSequences = {};
+                
+                // 1. Seed from authoritative server-side sequences
+                if (typeof SERVER_SEQS === 'object' && SERVER_SEQS !== null) {
+                    Object.entries(SERVER_SEQS).forEach(([qId, sSeq]) => {
+                        const parsed = parseInt(sSeq, 10);
+                        if (!isNaN(parsed) && parsed > 0) {
+                            state.questionSequences[String(qId)] = parsed;
                         }
                     });
+                }
+
+                // 2. Reconcile with local storage sequences (taking the higher sequence if local has un-synced edits)
+                Object.entries(storedSeqs).forEach(([qId, lSeq]) => {
+                    const parsed = parseInt(lSeq, 10);
+                    if (!isNaN(parsed) && parsed > 0) {
+                        const existing = state.questionSequences[String(qId)] || 0;
+                        state.questionSequences[String(qId)] = Math.max(existing, parsed);
+                    }
                 });
-                // Update nav button colors based on restored answers
-                updateAnswerProgress();
+
+                // 3. Prevent stale recovered local answers from overwriting newer server answers:
+                // If local pending answer has a sequence strictly lower than authoritative server sequence,
+                // discard the stale local pending answer.
+                Object.keys(state.pendingAnswers).forEach(qId => {
+                    const sSeq = (SERVER_SEQS && SERVER_SEQS[qId]) ? parseInt(SERVER_SEQS[qId], 10) : 0;
+                    const lSeq = state.pendingSeqs[qId] ? parseInt(state.pendingSeqs[qId], 10) : 0;
+                    if (sSeq > 0 && lSeq > 0 && lSeq < sSeq) {
+                        delete state.pendingAnswers[qId];
+                        delete state.pendingSeqs[qId];
+                    }
+                });
+                savePendingAnswersToStorage(state.pendingAnswers, state.pendingSeqs);
+
+                // Reconstruct changedQuestions dari pending answers
+                Object.keys(state.pendingAnswers).forEach(qId => {
+                    state.changedQuestions.add(qId);
+                });
+
+                console.log('Initialized state:');
+                console.log('- Saved answers from DB:', state.savedAnswers.size);
+                console.log('- Pending answers from localStorage:', Object.keys(state.pendingAnswers).length);
+                console.log('- Changed questions:', state.changedQuestions.size);
+
+                // Restore UI from localStorage pending answers
+                if (Object.keys(state.pendingAnswers).length > 0) {
+                    Object.entries(state.pendingAnswers).forEach(([qId, val]) => {
+                        const inputs = elements.form.querySelectorAll(`[name="answers[${qId}]"]`);
+                        inputs.forEach(input => {
+                            if (input.type === 'radio') {
+                                if (input.value === val) {
+                                    input.checked = true;
+                                }
+                            } else {
+                                input.value = val;
+                            }
+                        });
+                    });
+                    // Update nav button colors based on restored answers
+                    updateAnswerProgress();
+                }
+            } catch (recoveryError) {
+                console.error('Error during exam state recovery:', recoveryError);
             }
 
-            // Set deadline
-            const deadlineStr = '{{ $attempt->started_at->copy()->addMinutes($exam->durasi_menit)->min($exam->tanggal_selesai ?? $attempt->started_at->copy()->addMinutes($exam->durasi_menit))->toIso8601String() }}';
-            deadline = new Date(deadlineStr).getTime();
+            // Mulai countdown timer segera setelah pemulihan state agar tidak terhambat error komponen lain
+            startCountdownTimer();
 
             // Setup event listeners
             elements.previous.addEventListener('click', () => showQuestion(current - 1));
@@ -2082,20 +2513,6 @@
             window.addEventListener('online', updateConnectionStatus);
             window.addEventListener('offline', updateConnectionStatus);
             updateConnectionStatus();
-
-            // Countdown timer
-            countdownTimer = setInterval(() => {
-                const remaining = Math.max(0, deadline - Date.now());
-                const minutes = Math.floor(remaining / 60000);
-                const seconds = Math.floor((remaining % 60000) / 1000);
-
-                elements.countdown.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-                if (remaining === 0) {
-                    clearInterval(countdownTimer);
-                    timeExpired();
-                }
-            }, 1000);
 
             // Inisialisasi state essay mode & lampiran foto dari server + localStorage
             const storedModes = loadSavedEssayModes();
@@ -2265,6 +2682,103 @@
             </div>
         </div>
     </template>
+
+    <!-- Embedded WebRTC Camera Modal (Android Exambro Compatible) -->
+    <div id="embedded-camera-modal"
+         class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 backdrop-blur-sm"
+         style="display: none; z-index: 90; background: rgba(15, 23, 42, 0.9);"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="embedded-camera-title">
+        <div class="flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-slate-900 text-white shadow-2xl border border-slate-800" style="max-height: 92vh;">
+            <div class="flex items-center justify-between border-b border-slate-800 px-4 py-3 sm:px-5">
+                <div>
+                    <h3 id="embedded-camera-title" class="text-sm sm:text-base font-bold text-white">Kamera Jawaban Essay</h3>
+                    <p id="embedded-camera-question-badge" class="text-[11px] font-semibold" style="color: #93c5fd;">Jawaban Essay</p>
+                </div>
+                <button type="button"
+                        onclick="closeEmbeddedCamera()"
+                        class="rounded-xl p-2 text-slate-400 hover:bg-slate-800 hover:text-white active:scale-95 transition"
+                        title="Tutup Kamera">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="relative flex flex-1 items-center justify-center bg-black overflow-hidden" style="min-height: 280px;">
+                <video id="embedded-camera-video" autoplay playsinline muted class="hidden h-full w-full object-contain bg-black" style="display: none; max-height: 60vh;"></video>
+                <canvas id="embedded-camera-canvas" class="hidden" style="display: none;"></canvas>
+                <img id="embedded-camera-preview" class="hidden h-full w-full object-contain bg-black" style="display: none; max-height: 60vh;" alt="Preview Foto Jawaban">
+
+                <div id="embedded-camera-loading" class="flex flex-col items-center justify-center gap-3 p-6 text-center">
+                    <div class="h-9 w-9 animate-spin rounded-full border-blue-500 border-t-transparent" style="border-width: 3px;"></div>
+                    <p class="text-xs sm:text-sm font-semibold text-slate-300">Membuka kamera perangkat...</p>
+                </div>
+
+                <div id="embedded-camera-error" class="hidden max-w-md space-y-4 p-6 text-center" style="display: none;">
+                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full" style="background: rgba(245, 158, 11, 0.2); color: #fcd34d;">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <p id="embedded-camera-error-text" class="text-xs sm:text-sm leading-relaxed text-slate-300"></p>
+                    <div class="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                        <button type="button"
+                                onclick="triggerFallbackCameraInput()"
+                                class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-xs sm:text-sm font-bold text-white hover:bg-blue-700 active:scale-95 transition">
+                            <span>Ambil via Kamera/File Perangkat</span>
+                        </button>
+                        <button type="button"
+                                onclick="triggerFallbackGalleryInput()"
+                                class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-800 px-4 py-2.5 text-xs sm:text-sm font-bold text-white hover:bg-slate-700 active:scale-95 transition">
+                            <span>Pilih File / Galeri</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 bg-slate-900 px-4 py-3 sm:px-5">
+                <div id="embedded-camera-live-actions" class="hidden items-center justify-between gap-2.5" style="display: none;">
+                    <button type="button"
+                            id="embedded-camera-switch-btn"
+                            onclick="switchEmbeddedCameraFacing()"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-800 px-3.5 py-2.5 text-xs sm:text-sm font-bold text-slate-300 hover:bg-slate-700 active:scale-95 transition min-h-[44px]">
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span>Ganti Kamera</span>
+                    </button>
+                    <button type="button"
+                            id="embedded-camera-capture-btn"
+                            onclick="captureEmbeddedCameraPhoto()"
+                            class="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-95 transition min-h-[44px]">
+                        <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span>Jepret Foto</span>
+                    </button>
+                </div>
+
+                <div id="embedded-camera-preview-actions" class="hidden items-center justify-between gap-2.5" style="display: none;">
+                    <button type="button"
+                            onclick="retakeEmbeddedCameraPhoto()"
+                            class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-800 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-300 hover:bg-slate-700 active:scale-95 transition min-h-[44px]">
+                        <span>Ulangi</span>
+                    </button>
+                    <button type="button"
+                            onclick="confirmEmbeddedCameraPhoto()"
+                            class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition min-h-[44px]">
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span>Gunakan Foto</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Image Zoom Modal -->
     <template x-if="zoomImage">

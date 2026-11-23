@@ -32,7 +32,8 @@ class TokenService
         $exam->update([
             'token' => $this->generateToken(6),
             'token_aktif' => true,
-            'token_expired_at' => $durationMinutes ? now()->addMinutes($durationMinutes) : null,
+            'token_dibuat_at' => now(),
+            'token_kedaluwarsa_at' => $durationMinutes ? now()->addMinutes($durationMinutes) : null,
         ]);
 
         return $exam;
@@ -46,7 +47,7 @@ class TokenService
         $exam->update([
             'token_aktif' => false,
             'token' => null,
-            'token_expired_at' => null,
+            'token_kedaluwarsa_at' => null,
         ]);
 
         return $exam;
@@ -57,12 +58,13 @@ class TokenService
      */
     public function rotateExpiredToken(Exam $exam): bool
     {
-        if ($exam->token_aktif && $exam->token_expired_at && $exam->token_expired_at->lte(now())) {
-            $this->activateToken($exam, 15);
-            return true;
-        }
+        $wasExpired = $exam->token_aktif
+            && $exam->token_kedaluwarsa_at
+            && $exam->token_kedaluwarsa_at->lte(now());
 
-        return false;
+        $exam->rotateExpiredToken();
+
+        return $wasExpired;
     }
 
     /**

@@ -413,6 +413,21 @@
         </div>
     </aside>
 
+    @php
+        $startedAt = $attempt->started_at ?? now();
+        $calculatedDeadline = isset($deadline) && $deadline instanceof \Illuminate\Support\Carbon
+            ? $deadline
+            : $startedAt->copy()->addMinutes((int) $exam->durasi_menit);
+        if ($exam->tanggal_selesai && $exam->tanggal_selesai->lt($calculatedDeadline)) {
+            $calculatedDeadline = $exam->tanggal_selesai->copy();
+        }
+        $initialRemainingSeconds = isset($remainingSeconds)
+            ? max(0, (int) $remainingSeconds)
+            : max(0, $calculatedDeadline->getTimestamp() - now()->getTimestamp());
+        $initialServerNowMs = $serverNowMs ?? (now()->getTimestamp() * 1000);
+        $initialDeadlineMs = $deadlineMs ?? ($calculatedDeadline->getTimestamp() * 1000);
+    @endphp
+
     <script>
         /**
          * ============================================================================
@@ -446,6 +461,13 @@
         // Get unique storage key untuk exam attempt
         const ATTEMPT_ID = '{{ $attempt->id }}';
         const STORAGE_KEY = `cbt_pending_answers_${ATTEMPT_ID}`;
+        const INITIAL_REMAINING_SECONDS = {{ $initialRemainingSeconds }};
+        const SERVER_NOW_MS = {{ $initialServerNowMs }};
+        const SERVER_DEADLINE_MS = {{ $initialDeadlineMs }};
+        const TIMER_ORIGIN_PERF = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+            ? performance.now()
+            : null;
+        const TIMER_ORIGIN_DATE = Date.now();
 
         // State tracking
         const state = {
@@ -461,6 +483,7 @@
             pageUnloading: false,             // Flag untuk page unload
             isSubmitting: false,              // Flag untuk submit
             submitStarted: false,             // Mutex global untuk submit/timer race condition
+            timeExpiredTriggered: false,      // Mutex untuk mencegah timeExpired berjalan ganda
         };
 
         // DOM Elements
@@ -501,7 +524,8 @@
         function getPendingAnswersFromStorage() {
             try {
                 const stored = localStorage.getItem(STORAGE_KEY);
-                return stored ? JSON.parse(stored) : {};
+                const parsed = stored ? JSON.parse(stored) : {};
+                return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
             } catch (error) {
                 console.error('Error reading from localStorage:', error);
                 return {};
@@ -971,9 +995,61 @@
         }
 
         /**
+         * Hitung sisa waktu ujian berdasarkan sisa waktu server saat halaman dimuat
+         * dan elapsed time monotonik (independen terhadap perbedaan jam client vs container server).
+         */
+        function getRemainingTimeMs() {
+            const totalMs = Math.max(0, Number(INITIAL_REMAINING_SECONDS) || 0) * 1000;
+            const elapsedPerf = TIMER_ORIGIN_PERF !== null
+                ? Math.max(0, performance.now() - TIMER_ORIGIN_PERF)
+                : 0;
+            const elapsedDate = Math.max(0, Date.now() - TIMER_ORIGIN_DATE);
+            const elapsedMs = Math.max(elapsedPerf, elapsedDate);
+
+            return Math.max(0, totalMs - elapsedMs);
+        }
+
+        function renderCountdownText(remainingMs) {
+            if (!elements.countdown) return;
+            const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+
+            elements.countdown.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateCountdownDisplay() {
+            const remaining = getRemainingTimeMs();
+            renderCountdownText(remaining);
+
+            if (remaining <= 0) {
+                if (countdownTimer) {
+                    clearInterval(countdownTimer);
+                    countdownTimer = null;
+                }
+                timeExpired();
+            }
+        }
+
+        function startCountdownTimer() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+            updateCountdownDisplay();
+            if (getRemainingTimeMs() > 0) {
+                countdownTimer = setInterval(updateCountdownDisplay, 1000);
+            }
+        }
+
+        /**
          * Auto submit ketika waktu habis
          */
         async function timeExpired() {
+            if (state.timeExpiredTriggered || state.submitStarted || state.isSubmitting) {
+                return;
+            }
+            state.timeExpiredTriggered = true;
             console.log('Waktu ujian habis');
             state.pageUnloading = true;
             
@@ -1074,49 +1150,56 @@
          * Initialize dengan load dari localStorage dan database
          */
         function initialize() {
-            // Load jawaban dari database yang sudah tersimpan
-            const dbAnswers = getCurrentAnswers();
-            Object.entries(dbAnswers).forEach(([qId, answer]) => {
-                if (answer) {  // Hanya jika ada jawaban
-                    state.savedAnswers.set(String(qId), answer);
-                }
-            });
+            // Set deadline (relatif terhadap sisa waktu server agar kebal perbedaan jam client vs Docker server)
+            deadline = Date.now() + (Math.max(0, Number(INITIAL_REMAINING_SECONDS) || 0) * 1000);
+            renderCountdownText(Math.max(0, Number(INITIAL_REMAINING_SECONDS) || 0) * 1000);
 
-            // Load pending answers dari localStorage (jawaban yang belum berhasil disimpan)
-            const storedPending = getPendingAnswersFromStorage();
-            state.pendingAnswers = { ...storedPending };
-
-            // Reconstruct changedQuestions dari pending answers
-            Object.keys(storedPending).forEach(qId => {
-                state.changedQuestions.add(qId);
-            });
-
-            console.log('Initialized state:');
-            console.log('- Saved answers from DB:', state.savedAnswers.size);
-            console.log('- Pending answers from localStorage:', Object.keys(state.pendingAnswers).length);
-            console.log('- Changed questions:', state.changedQuestions.size);
-
-            // Restore UI from localStorage pending answers
-            if (Object.keys(state.pendingAnswers).length > 0) {
-                Object.entries(state.pendingAnswers).forEach(([qId, val]) => {
-                    const inputs = elements.form.querySelectorAll(`[name="answers[${qId}]"]`);
-                    inputs.forEach(input => {
-                        if (input.type === 'radio') {
-                            if (input.value === val) {
-                                input.checked = true;
-                            }
-                        } else {
-                            input.value = val;
-                        }
-                    });
+            try {
+                // Load jawaban dari database yang sudah tersimpan
+                const dbAnswers = getCurrentAnswers();
+                Object.entries(dbAnswers).forEach(([qId, answer]) => {
+                    if (answer) {  // Hanya jika ada jawaban
+                        state.savedAnswers.set(String(qId), answer);
+                    }
                 });
-                // Update nav button colors based on restored answers
-                updateAnswerProgress();
+
+                // Load pending answers dari localStorage (jawaban yang belum berhasil disimpan)
+                const storedPending = getPendingAnswersFromStorage();
+                state.pendingAnswers = { ...storedPending };
+
+                // Reconstruct changedQuestions dari pending answers
+                Object.keys(storedPending).forEach(qId => {
+                    state.changedQuestions.add(qId);
+                });
+
+                console.log('Initialized state:');
+                console.log('- Saved answers from DB:', state.savedAnswers.size);
+                console.log('- Pending answers from localStorage:', Object.keys(state.pendingAnswers).length);
+                console.log('- Changed questions:', state.changedQuestions.size);
+
+                // Restore UI from localStorage pending answers
+                if (Object.keys(state.pendingAnswers).length > 0) {
+                    Object.entries(state.pendingAnswers).forEach(([qId, val]) => {
+                        const inputs = elements.form.querySelectorAll(`[name="answers[${qId}]"]`);
+                        inputs.forEach(input => {
+                            if (input.type === 'radio') {
+                                if (input.value === val) {
+                                    input.checked = true;
+                                }
+                            } else {
+                                input.value = val;
+                            }
+                        });
+                    });
+                    // Update nav button colors based on restored answers
+                    updateAnswerProgress();
+                }
+            } catch (recoveryError) {
+                console.error('Error during exam state recovery:', recoveryError);
             }
 
-            // Set deadline
-            const deadlineStr = '{{ $attempt->started_at->copy()->addMinutes($exam->durasi_menit)->min($exam->tanggal_selesai ?? $attempt->started_at->copy()->addMinutes($exam->durasi_menit))->toIso8601String() }}';
-            deadline = new Date(deadlineStr).getTime();
+            // Mulai countdown timer segera setelah pemulihan state agar tidak terhambat error komponen lain
+            startCountdownTimer();
 
             // Setup event listeners
             elements.previous.addEventListener('click', () => showQuestion(current - 1));
@@ -1173,20 +1256,6 @@
             window.addEventListener('online', updateConnectionStatus);
             window.addEventListener('offline', updateConnectionStatus);
             updateConnectionStatus();
-
-            // Countdown timer
-            countdownTimer = setInterval(() => {
-                const remaining = Math.max(0, deadline - Date.now());
-                const minutes = Math.floor(remaining / 60000);
-                const seconds = Math.floor((remaining % 60000) / 1000);
-
-                elements.countdown.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-                if (remaining === 0) {
-                    clearInterval(countdownTimer);
-                    timeExpired();
-                }
-            }, 1000);
 
             // Show first question
             showQuestion(1);

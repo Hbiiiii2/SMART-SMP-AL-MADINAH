@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="header"><div><h2 class="text-xl font-bold text-slate-900">Dashboard Siswa</h2><p class="mt-0.5 text-sm text-slate-500">Pantau jadwal dan hasil ujian Anda.</p></div></x-slot>
+    <x-slot name="header"><div><h2 class="text-xl font-bold text-slate-900">Dashboard Siswa</h2><p class="mt-0.5 text-sm text-slate-500">Pantau jadwal dan status pengerjaan ujian Anda.</p></div></x-slot>
     <div class="py-6"><div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm sm:p-7"><p class="text-sm font-medium text-slate-600">Selamat datang kembali</p><h1 class="mt-1 text-2xl font-bold text-slate-900">{{ $siswa->nama ?: auth()->user()->name }}</h1><p class="mt-2 text-sm text-slate-600">{{ $siswa->kelasData?->nama_kelas ?? $siswa->kelas ?? 'Kelas belum ditentukan' }} <span class="mx-1 text-slate-300">·</span> NISN {{ $siswa->nisn ?: $siswa->nis }}</p></section>
         <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">

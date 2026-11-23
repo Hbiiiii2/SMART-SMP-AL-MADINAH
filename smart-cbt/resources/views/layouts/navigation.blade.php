@@ -373,10 +373,6 @@
                             <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h10M4 18h7"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m17 15 3 3-3 3"/></svg>
                             <span>Riwayat Ujian</span>
                         </a>
-                        <a href="{{ route('siswa.hasil') }}" class="flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition {{ request()->routeIs('siswa.hasil') ? 'bg-white/10 font-semibold text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}" @click="open = false">
-                            <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 19.5V5.8A1.8 1.8 0 0 1 5.8 4H20v15H5.8A1.8 1.8 0 0 0 4 20.8"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 15v-3m4 3V8m4 7v-5"/></svg>
-                            <span>Hasil / Nilai</span>
-                        </a>
                     </div>
                 </div>
             @endif

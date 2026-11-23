@@ -198,7 +198,7 @@ class ExamAttemptService
      */
     public function calculateDeadline(ExamAttempt $attempt): Carbon
     {
-        $deadline = $attempt->started_at->copy()->addMinutes($attempt->exam->durasi_menit);
+        $deadline = $attempt->started_at->copy()->addMinutes((int) $attempt->exam->durasi_menit);
 
         if ($attempt->exam->tanggal_selesai && $attempt->exam->tanggal_selesai->lt($deadline)) {
             $deadline = $attempt->exam->tanggal_selesai;

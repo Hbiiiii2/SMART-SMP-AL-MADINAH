@@ -14,8 +14,8 @@
         <div><span class="block text-xs text-slate-400">Durasi</span>{{ $exam->durasi_menit }} menit</div>
         <div><span class="block text-xs text-slate-400">Soal</span>{{ $exam->questions_count }} soal</div>
         @if ($attempt && $attempt->status !== 'in_progress')
-            <div><span class="block text-xs text-slate-400">Nilai</span>{{ $attempt->nilai_akhir !== null ? number_format($attempt->nilai_akhir, 2) : '-' }}</div>
-            <div><span class="block text-xs text-slate-400">Status</span>{{ $attempt->status === 'expired' ? 'Waktu Habis' : 'Selesai' }}</div>
+            <div><span class="block text-xs text-slate-400">Waktu Selesai</span>{{ $attempt->submitted_at?->format('d M Y, H:i') ?? '-' }}</div>
+            <div><span class="block text-xs text-slate-400">Status</span>{{ $attempt->status === 'expired' ? 'Waktu Habis' : 'Terkumpul' }}</div>
         @endif
     </div>
     <div class="mt-auto pt-5"><a href="{{ route('siswa.ujian.show', $exam) }}" class="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700">{{ $status === 'Sedang Berlangsung' && $attempt?->status === 'in_progress' ? 'Lanjutkan Ujian' : 'Lihat Detail' }}</a></div>

@@ -164,6 +164,11 @@ class SiswaExamController extends Controller
         ]);
         $maxEssayPhotos = (int) config('cbt.essay_max_photos', 3);
         $exam = $ujian;
+        $deadline = $this->deadline($attempt);
+        $now = now();
+        $remainingSeconds = max(0, $deadline->getTimestamp() - $now->getTimestamp());
+        $serverNowMs = $now->getTimestamp() * 1000;
+        $deadlineMs = $deadline->getTimestamp() * 1000;
 
         return view('siswa.exams.work', compact(
             'exam',
@@ -172,7 +177,11 @@ class SiswaExamController extends Controller
             'answerSeqs',
             'answerTypes',
             'answerAttachments',
-            'maxEssayPhotos'
+            'maxEssayPhotos',
+            'deadline',
+            'remainingSeconds',
+            'serverNowMs',
+            'deadlineMs'
         ));
     }
 
@@ -237,7 +246,11 @@ class SiswaExamController extends Controller
         $attempt = $this->attempt($ujian, $siswa);
         abort_unless($attempt && $attempt->status !== 'in_progress', 404);
 
-        return view('siswa.exams.result', ['exam' => $ujian->load(['mataPelajaran', 'guru']), 'attempt' => $attempt]);
+        return view('siswa.exams.result', [
+            'exam' => $ujian->load(['mataPelajaran', 'guru', 'kelasData']),
+            'attempt' => $attempt,
+            'siswa' => $siswa->load('kelasData'),
+        ]);
     }
 
     private function siswa(Request $request): Siswa

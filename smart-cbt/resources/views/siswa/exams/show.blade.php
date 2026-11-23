@@ -6,8 +6,11 @@
         @if (session('error')) <p class="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ session('error') }}</p> @endif
         @if ($errors->any()) <p class="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ $errors->first() }}</p> @endif
         <div class="mt-6">
-            @if ($attempt && $attempt->status !== 'in_progress') 
-                <a href="{{ route('siswa.ujian.result', $exam) }}" class="inline-flex rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition">Lihat Hasil</a>
+            @if ($attempt && $attempt->status !== 'in_progress')
+                <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    Jawaban ujian ini telah dikumpulkan pada {{ $attempt->submitted_at?->format('d M Y, H:i') ?? '-' }}.
+                </div>
+                <a href="{{ route('siswa.ujian.result', $exam) }}" class="inline-flex rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition">Lihat Bukti Selesai</a>
             @elseif ($exam->status !== 'aktif')
                 <p class="text-sm font-semibold text-slate-500">Ujian tidak tersedia. Ujian hanya dapat diakses sesuai jadwal dan status.</p>
             @elseif ($status === 'Sedang Berlangsung' && $attempt && session()->get('siswa.exam_token_verified.' . $exam->id, false)) 

@@ -39,8 +39,10 @@ class Exam extends Model
         'tanggal_mulai' => 'datetime',
         'tanggal_selesai' => 'datetime',
         'komponen_soal' => 'array',
+        'durasi_menit' => 'integer',
         'token_aktif' => 'boolean',
         'acak_soal' => 'boolean',
+        'is_token_auto_rotate' => 'boolean',
         'token_dibuat_at' => 'datetime',
         'token_kedaluwarsa_at' => 'datetime',
     ];

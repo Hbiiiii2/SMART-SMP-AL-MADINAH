@@ -440,34 +440,65 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 
+    function normalizeTimeString(value) {
+        if (!value) {
+            return null;
+        }
+        const cleaned = String(value).trim().replace('.', ':');
+        const match = cleaned.match(/^(\d{1,2}):(\d{1,2})$/);
+        if (!match) {
+            return null;
+        }
+        const hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+            return null;
+        }
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
     function updateDuration() {
+
+        const normalizedStartTime = normalizeTimeString(startTime.value);
+        const normalizedEndTime = normalizeTimeString(endTime.value);
 
         // Kalau data belum lengkap, kosongkan durasi
         if (
             !startDate.value ||
-            !startTime.value ||
+            !normalizedStartTime ||
             !endDate.value ||
-            !endTime.value
+            !normalizedEndTime
         ) {
             duration.value = '';
             durationInfo.textContent =
                 'Durasi dihitung otomatis dari jam mulai dan jam selesai.';
+            durationInfo.classList.remove('text-red-600');
+            durationInfo.classList.add('text-slate-500');
             return;
         }
 
 
         // Buat object tanggal
         const start = new Date(
-            startDate.value + 'T' + startTime.value
+            startDate.value + 'T' + normalizedStartTime + ':00'
         );
 
         const end = new Date(
-            endDate.value + 'T' + endTime.value
+            endDate.value + 'T' + normalizedEndTime + ':00'
         );
 
 
         // Hitung selisih waktu dalam milidetik
         const difference = end.getTime() - start.getTime();
+
+        if (Number.isNaN(difference)) {
+            duration.value = '';
+            durationInfo.textContent =
+                'Format tanggal atau jam tidak valid. Gunakan format HH:MM (contoh: 07:00).';
+            durationInfo.classList.remove('text-slate-500');
+            durationInfo.classList.add('text-red-600');
+            return;
+        }
 
 
         // Kalau jam selesai lebih kecil dari jam mulai
@@ -520,12 +551,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    // Jalankan setiap kali field berubah
-    startDate.addEventListener('change', updateDuration);
-    startTime.addEventListener('change', updateDuration);
-
-    endDate.addEventListener('change', updateDuration);
-    endTime.addEventListener('change', updateDuration);
+    // Jalankan setiap kali field berubah atau diketik
+    [startDate, startTime, endDate, endTime].forEach(function (field) {
+        field.addEventListener('change', updateDuration);
+        field.addEventListener('input', updateDuration);
+    });
 
 
     // Jalankan saat halaman pertama kali dibuka
