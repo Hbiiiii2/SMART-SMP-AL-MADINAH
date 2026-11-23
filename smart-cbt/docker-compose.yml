@@ -29,9 +29,9 @@ services:
       - APP_KEY=${APP_KEY:-base64:uCmfgq9ixvn4I/mdbjuPsyd2uklgdD69Zd4HCffiajE=}
       - APP_URL=${APP_URL:-http://localhost:8001}
       - APP_TIMEZONE=Asia/Jakarta
-      - DB_CONNECTION=pgsql
-      - DB_HOST=smart-cbt-db
-      - DB_PORT=5432
+      - DB_CONNECTION=${DOCKER_CBT_DB_CONNECTION:-pgsql}
+      - DB_HOST=${DOCKER_CBT_DB_HOST:-smart-cbt-db}
+      - DB_PORT=${DOCKER_CBT_DB_PORT:-5432}
       - DB_DATABASE=${DOCKER_CBT_DB_DATABASE:-smart_cbt}
       - DB_USERNAME=${DOCKER_CBT_DB_USERNAME:-smart_cbt}
       - DB_PASSWORD=${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
@@ -81,9 +81,9 @@ services:
       - APP_KEY=${APP_KEY:-base64:uCmfgq9ixvn4I/mdbjuPsyd2uklgdD69Zd4HCffiajE=}
       - APP_URL=${APP_URL:-http://localhost:8001}
       - APP_TIMEZONE=Asia/Jakarta
-      - DB_CONNECTION=pgsql
-      - DB_HOST=smart-cbt-db
-      - DB_PORT=5432
+      - DB_CONNECTION=${DOCKER_CBT_DB_CONNECTION:-pgsql}
+      - DB_HOST=${DOCKER_CBT_DB_HOST:-smart-cbt-db}
+      - DB_PORT=${DOCKER_CBT_DB_PORT:-5432}
       - DB_DATABASE=${DOCKER_CBT_DB_DATABASE:-smart_cbt}
       - DB_USERNAME=${DOCKER_CBT_DB_USERNAME:-smart_cbt}
       - DB_PASSWORD=${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
@@ -135,9 +135,9 @@ services:
       - APP_KEY=${APP_KEY:-base64:uCmfgq9ixvn4I/mdbjuPsyd2uklgdD69Zd4HCffiajE=}
       - APP_URL=${APP_URL:-http://localhost:8001}
       - APP_TIMEZONE=Asia/Jakarta
-      - DB_CONNECTION=pgsql
-      - DB_HOST=smart-cbt-db
-      - DB_PORT=5432
+      - DB_CONNECTION=${DOCKER_CBT_DB_CONNECTION:-pgsql}
+      - DB_HOST=${DOCKER_CBT_DB_HOST:-smart-cbt-db}
+      - DB_PORT=${DOCKER_CBT_DB_PORT:-5432}
       - DB_DATABASE=${DOCKER_CBT_DB_DATABASE:-smart_cbt}
       - DB_USERNAME=${DOCKER_CBT_DB_USERNAME:-smart_cbt}
       - DB_PASSWORD=${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
@@ -224,6 +224,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: smart-cbt-app:latest
     container_name: smart-cbt-queue
     restart: always
     working_dir: /var/www/html
@@ -246,9 +247,9 @@ services:
       - APP_KEY=${APP_KEY:-base64:uCmfgq9ixvn4I/mdbjuPsyd2uklgdD69Zd4HCffiajE=}
       - APP_URL=${APP_URL:-http://localhost:8001}
       - APP_TIMEZONE=Asia/Jakarta
-      - DB_CONNECTION=pgsql
-      - DB_HOST=smart-cbt-db
-      - DB_PORT=5432
+      - DB_CONNECTION=${DOCKER_CBT_DB_CONNECTION:-pgsql}
+      - DB_HOST=${DOCKER_CBT_DB_HOST:-smart-cbt-db}
+      - DB_PORT=${DOCKER_CBT_DB_PORT:-5432}
       - DB_DATABASE=${DOCKER_CBT_DB_DATABASE:-smart_cbt}
       - DB_USERNAME=${DOCKER_CBT_DB_USERNAME:-smart_cbt}
       - DB_PASSWORD=${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
@@ -276,6 +277,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: smart-cbt-app:latest
     container_name: smart-cbt-scheduler
     restart: always
     working_dir: /var/www/html
@@ -298,9 +300,9 @@ services:
       - APP_KEY=${APP_KEY:-base64:uCmfgq9ixvn4I/mdbjuPsyd2uklgdD69Zd4HCffiajE=}
       - APP_URL=${APP_URL:-http://localhost:8001}
       - APP_TIMEZONE=Asia/Jakarta
-      - DB_CONNECTION=pgsql
-      - DB_HOST=smart-cbt-db
-      - DB_PORT=5432
+      - DB_CONNECTION=${DOCKER_CBT_DB_CONNECTION:-pgsql}
+      - DB_HOST=${DOCKER_CBT_DB_HOST:-smart-cbt-db}
+      - DB_PORT=${DOCKER_CBT_DB_PORT:-5432}
       - DB_DATABASE=${DOCKER_CBT_DB_DATABASE:-smart_cbt}
       - DB_USERNAME=${DOCKER_CBT_DB_USERNAME:-smart_cbt}
       - DB_PASSWORD=${DOCKER_CBT_DB_PASSWORD:-smart_cbt_password}
