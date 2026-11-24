@@ -17,6 +17,17 @@ let package = Package(
         .target(
             name: "SmartCBTCore",
             path: "SmartCBT",
+            exclude: [
+                "Info.plist",
+                "SmartCBT.entitlements",
+                "Assets.xcassets",
+                "Base.lproj",
+                "AppDelegate.swift",
+                "SceneDelegate.swift",
+                "MainViewController.swift",
+                "Camera",
+                "WebView"
+            ],
             sources: [
                 "Config/SchoolConfigManager.swift",
                 "Security/ExamLockController.swift"

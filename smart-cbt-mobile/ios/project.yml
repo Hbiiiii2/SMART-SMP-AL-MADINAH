@@ -20,6 +20,9 @@ targets:
     deploymentTarget: "15.0"
     sources:
       - path: SmartCBT
+        excludes:
+          - Info.plist
+          - SmartCBT.entitlements
     configFiles:
       Debug: Config/SchoolConfig.xcconfig
       Release: Config/SchoolConfig.xcconfig

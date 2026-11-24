@@ -110,17 +110,6 @@ public final class ExamLockController: NSObject {
         #if os(iOS) && canImport(AutomaticAssessmentConfiguration)
         if assessmentSession?.isActive == true { return }
         let config = AEAssessmentConfiguration()
-        if #available(iOS 14.0, *) {
-            config.autocorrectMode = []
-            config.allowsSpellCheck = false
-            config.allowsPredictiveKeyboard = false
-            config.allowsKeyboardShortcuts = false
-            config.allowsActivityContinuation = false
-            config.allowsDictation = false
-            config.allowsAccessibilitySpeech = false
-            config.allowsPasswordAutoFill = false
-            config.allowsContinuousPathKeyboard = false
-        }
         let session = AEAssessmentSession(configuration: config)
         session.delegate = self
         assessmentSession = session

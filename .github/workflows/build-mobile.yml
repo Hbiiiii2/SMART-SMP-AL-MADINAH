@@ -22,26 +22,46 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Swift Core Unit Tests
-        run: swift test
+        run: |
+          if ! swift test > swift_test.log 2>&1; then
+            tail -n 40 swift_test.log | while IFS= read -r line; do echo "::error::$line"; done
+            cat swift_test.log
+            exit 1
+          fi
+          cat swift_test.log
+
+      - name: Regenerate Xcode Project (if XcodeGen available)
+        run: |
+          if command -v xcodegen >/dev/null 2>&1; then
+            xcodegen generate
+          fi
 
       - name: Build iOS Simulator App
         run: |
           SIM_OUT="$PWD/build-sim"
-          xcodebuild \
+          if ! xcodebuild \
             -project SmartCBT.xcodeproj \
             -scheme SmartCBT \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
             CONFIGURATION_BUILD_DIR="$SIM_OUT" \
-            build
+            build > xcode_sim.log 2>&1; then
+            tail -n 60 xcode_sim.log | while IFS= read -r line; do echo "::error::$line"; done
+            cat xcode_sim.log
+            exit 1
+          fi
           cd "$SIM_OUT"
           zip -r "$OLDPWD/SMART-CBT-iOS-Simulator.app.zip" SmartCBT.app
 
       - name: Build Unsigned iOS Device IPA (Sideloadly / AltStore / Re-Sign Ready)
         run: |
           IOS_OUT="$PWD/build-iphoneos"
-          xcodebuild \
+          if ! xcodebuild \
             -project SmartCBT.xcodeproj \
             -scheme SmartCBT \
             -configuration Release \
@@ -50,8 +70,13 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
             CONFIGURATION_BUILD_DIR="$IOS_OUT" \
-            build
+            build > xcode_ios.log 2>&1; then
+            tail -n 60 xcode_ios.log | while IFS= read -r line; do echo "::error::$line"; done
+            cat xcode_ios.log
+            exit 1
+          fi
           rm -rf build-ipa
           mkdir -p build-ipa/Payload
           cp -r "$IOS_OUT/SmartCBT.app" build-ipa/Payload/
