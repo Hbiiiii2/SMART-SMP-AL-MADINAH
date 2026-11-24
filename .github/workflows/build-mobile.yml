@@ -24,57 +24,39 @@ jobs:
       - name: Run Swift Core Unit Tests
         run: |
           if ! swift test > swift_test.log 2>&1; then
-            tail -n 40 swift_test.log | while IFS= read -r line; do echo "::error::$line"; done
+            ERR_LINES=$(tail -n 25 swift_test.log | tr '\n' ' ' | tr -d '\r' || true)
+            echo "::error title=SwiftTestError::$ERR_LINES"
             cat swift_test.log
             exit 1
           fi
           cat swift_test.log
-
-      - name: Regenerate Xcode Project (if XcodeGen available)
-        run: |
-          if command -v xcodegen >/dev/null 2>&1; then
-            xcodegen generate
-          fi
-
-      - name: Build iOS Simulator App
-        run: |
-          SIM_OUT="$PWD/build-sim"
-          if ! xcodebuild \
-            -project SmartCBT.xcodeproj \
-            -scheme SmartCBT \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGN_ENTITLEMENTS="" \
-            CONFIGURATION_BUILD_DIR="$SIM_OUT" \
-            build > xcode_sim.log 2>&1; then
-            tail -n 60 xcode_sim.log | while IFS= read -r line; do echo "::error::$line"; done
-            cat xcode_sim.log
-            exit 1
-          fi
-          cd "$SIM_OUT"
-          zip -r "$OLDPWD/SMART-CBT-iOS-Simulator.app.zip" SmartCBT.app
 
       - name: Build Unsigned iOS Device IPA (Sideloadly / AltStore / Re-Sign Ready)
         run: |
           IOS_OUT="$PWD/build-iphoneos"
           if ! xcodebuild \
             -project SmartCBT.xcodeproj \
-            -scheme SmartCBT \
+            -target SmartCBT \
             -configuration Release \
             -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGN_ENTITLEMENTS="" \
             CONFIGURATION_BUILD_DIR="$IOS_OUT" \
             build > xcode_ios.log 2>&1; then
-            tail -n 60 xcode_ios.log | while IFS= read -r line; do echo "::error::$line"; done
+            ERR_LINES=$(grep -iE "error:|fatal|BUILD FAILED" xcode_ios.log | head -n 25 | tr '\n' ' ' | tr -d '\r' || true)
+            TAIL_LINES=$(tail -n 25 xcode_ios.log | tr '\n' ' ' | tr -d '\r' || true)
+            echo "::error title=XcodeBuildError::$ERR_LINES"
+            echo "::error title=XcodeBuildTail::$TAIL_LINES"
             cat xcode_ios.log
+            exit 1
+          fi
+          if [ ! -d "$IOS_OUT/SmartCBT.app" ]; then
+            OUT_LIST=$(ls -la "$IOS_OUT" 2>&1 | tr '\n' ' ' | tr -d '\r' || true)
+            echo "::error title=XcodeBuildError::SmartCBT.app not found in $IOS_OUT ($OUT_LIST)"
             exit 1
           fi
           rm -rf build-ipa
@@ -89,7 +71,6 @@ jobs:
           name: SMART-CBT-iOS
           path: |
             smart-cbt-mobile/ios/SMART-CBT-iOS-v1.0-unsigned.ipa
-            smart-cbt-mobile/ios/SMART-CBT-iOS-Simulator.app.zip
 
   build-android:
     name: Build Android (Linux)
