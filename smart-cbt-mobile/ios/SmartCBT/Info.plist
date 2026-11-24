@@ -51,16 +51,16 @@
     <string>UIStatusBarStyleLightContent</string>
     <key>UISupportedInterfaceOrientations</key>
     <array>
-        <key>UIInterfaceOrientationPortrait</key>
-        <key>UIInterfaceOrientationLandscapeLeft</key>
-        <key>UIInterfaceOrientationLandscapeRight</key>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
     <key>UISupportedInterfaceOrientations~ipad</key>
     <array>
-        <key>UIInterfaceOrientationPortrait</key>
-        <key>UIInterfaceOrientationPortraitUpsideDown</key>
-        <key>UIInterfaceOrientationLandscapeLeft</key>
-        <key>UIInterfaceOrientationLandscapeRight</key>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
     <key>NSAppTransportSecurity</key>
     <dict>
