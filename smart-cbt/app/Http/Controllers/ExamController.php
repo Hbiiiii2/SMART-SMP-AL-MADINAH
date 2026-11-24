@@ -6,9 +6,11 @@ use App\Models\Exam;
 use App\Models\Guru;
 use App\Models\MataPelajaran;
 use App\Models\Kelas;
+use App\Services\Examination\ExamDeletionService;
 use App\Services\Examination\ExamFilterService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -185,6 +187,15 @@ class ExamController extends Controller
             'totalParticipants' => $ujian
                 ->examAttempts()
                 ->count(),
+
+            'inProgressAttemptsCount' => $ujian
+                ->examAttempts()
+                ->where('status', 'in_progress')
+                ->count(),
+
+            'syncedQuestionBanksCount' => $ujian
+                ->syncedQuestionBanks()
+                ->count(),
         ]);
     }
 
@@ -274,23 +285,87 @@ class ExamController extends Controller
      * DESTROY
      * =========================================================
      */
-    public function destroy(Exam $ujian): RedirectResponse
-    {
-        if (
-            $ujian->questions()->exists() ||
-            $ujian->examAttempts()->exists()
-        ) {
-            return to_route('ujian.index')
+    public function destroy(
+        Request $request,
+        Exam $ujian,
+        ExamDeletionService $examDeletionService
+    ): RedirectResponse {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        $preservedFilters = $this->preservedIndexFilters($request);
+
+        $hasDependents = $ujian->questions()->exists()
+            || $ujian->examAttempts()->exists();
+
+        if ($hasDependents && ! $request->boolean('force_delete')) {
+            return to_route('ujian.index', $preservedFilters)
                 ->with(
                     'error',
-                    'Ujian tidak dapat dihapus karena sudah memiliki soal atau peserta.'
+                    'Ujian ini sudah memiliki soal atau peserta. Centang konfirmasi penghapusan permanen untuk melanjutkan.'
                 );
         }
 
-        $ujian->delete();
+        $summary = $examDeletionService->delete(
+            $ujian,
+            $request->boolean('delete_synced_banks'),
+            $request->user()
+        );
 
-        return to_route('ujian.index')
-            ->with('success', 'Ujian berhasil dihapus.');
+        $detailParts = array_values(array_filter([
+            $summary['questions_deleted'] > 0 ? "{$summary['questions_deleted']} soal" : null,
+            $summary['attempts_deleted'] > 0 ? "{$summary['attempts_deleted']} riwayat peserta" : null,
+            $summary['synced_banks_deleted'] > 0 ? "{$summary['synced_banks_deleted']} bank soal tersinkron" : null,
+        ]));
+
+        $message = empty($detailParts)
+            ? "Jadwal ujian \"{$summary['exam_name']}\" berhasil dihapus."
+            : "Jadwal ujian \"{$summary['exam_name']}\" berhasil dihapus (termasuk " . implode(', ', $detailParts) . ').';
+
+        return to_route('ujian.index', $preservedFilters)
+            ->with('success', $message);
+    }
+
+    /**
+     * Extract allowed filter query parameters for redirecting back to the filtered ujian index.
+     *
+     * @return array<string, string>
+     */
+    private function preservedIndexFilters(Request $request): array
+    {
+        $rawQuery = trim((string) $request->input('return_query', ''));
+        if ($rawQuery === '') {
+            return [];
+        }
+
+        $parsed = [];
+        parse_str(ltrim($rawQuery, '?'), $parsed);
+
+        $allowedKeys = [
+            'q',
+            'mata_pelajaran_id',
+            'kelas_id',
+            'guru_id',
+            'tahun_ajaran',
+            'semester',
+            'status',
+            'soal_status',
+            'pelaksanaan',
+            'sort',
+        ];
+
+        $filtered = [];
+        foreach (Arr::only($parsed, $allowedKeys) as $key => $value) {
+            if (! is_scalar($value)) {
+                continue;
+            }
+
+            $stringValue = trim((string) $value);
+            if ($stringValue !== '') {
+                $filtered[$key] = $stringValue;
+            }
+        }
+
+        return $filtered;
     }
 
     /**

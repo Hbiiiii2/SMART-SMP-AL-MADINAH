@@ -165,6 +165,11 @@ class Exam extends Model
             ->withTimestamps();
     }
 
+    public function syncedQuestionBanks()
+    {
+        return $this->hasMany(QuestionBank::class, 'source_exam_id');
+    }
+
     /**
      * Compute effective exam status based on stored status and schedule window.
      */

@@ -211,12 +211,30 @@
                                             <a class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                                                href="{{ route('ujian.edit', $exam) }}">Edit</a>
 
-                                            @if (($exam->questions_count ?? 0) === 0 && ($exam->exam_attempts_count ?? 0) === 0)
-                                                <form method="POST" action="{{ route('ujian.destroy', $exam) }}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus ujian ini?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button class="rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50" type="submit">Hapus</button>
-                                                </form>
+                                            @if (Auth::user()->isAdmin())
+                                                @php
+                                                    $deletePayload = [
+                                                        'action' => route('ujian.destroy', $exam),
+                                                        'nama' => $exam->nama,
+                                                        'kode_ujian' => $exam->kode_ujian ?? '-',
+                                                        'mapel' => $exam->mataPelajaran?->nama ?? '-',
+                                                        'kelas' => $exam->kelasData?->nama_kelas ?? $exam->kelas ?? '-',
+                                                        'guru' => $exam->guru?->nama ?? '-',
+                                                        'questions_count' => (int) ($exam->questions_count ?? 0),
+                                                        'attempts_count' => (int) ($exam->exam_attempts_count ?? 0),
+                                                        'in_progress_count' => (int) ($exam->in_progress_attempts_count ?? 0),
+                                                        'synced_banks_count' => (int) ($exam->synced_question_banks_count ?? 0),
+                                                        'return_query' => request()->getQueryString() ?? '',
+                                                    ];
+                                                @endphp
+                                                <button
+                                                    type="button"
+                                                    data-exam="{{ json_encode($deletePayload) }}"
+                                                    @click="$dispatch('open-delete-exam-modal', JSON.parse($el.dataset.exam))"
+                                                    class="rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                                                >
+                                                    Hapus
+                                                </button>
                                             @endif
                                         </div>
                                     </td>
@@ -246,4 +264,8 @@
 
         </div>
     </div>
+
+    @if (Auth::user()->isAdmin())
+        @include('ujian._delete-modal')
+    @endif
 </x-app-layout>

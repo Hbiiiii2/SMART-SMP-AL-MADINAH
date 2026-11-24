@@ -41,6 +41,8 @@ class ExamFilterService
                 ['submitted', 'completed', 'needs_grading', 'expired']
             ),
             'examAttempts as needs_grading_count' => fn (Builder $q) => $q->where('status', 'needs_grading'),
+            'examAttempts as in_progress_attempts_count' => fn (Builder $q) => $q->where('status', 'in_progress'),
+            'syncedQuestionBanks',
         ]);
     }
 

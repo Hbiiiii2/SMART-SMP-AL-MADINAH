@@ -25,6 +25,17 @@
     <div class="py-8">
         <div class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8">
 
+            @if (session('success'))
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    {{ session('success') }}
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
                 <div class="flex flex-wrap items-center gap-3">
                     @if ($isGuruView ?? false)
@@ -45,6 +56,31 @@
                         <a href="{{ route('ujian.export-soal', $exam) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-emerald-50 px-5 py-2.5 text-sm font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-100 border-emerald-200">
                             Export Soal
                         </a>
+                        @if (Auth::user()->isAdmin())
+                            @php
+                                $deletePayload = [
+                                    'action' => route('ujian.destroy', $exam),
+                                    'nama' => $exam->nama,
+                                    'kode_ujian' => $exam->kode_ujian ?? '-',
+                                    'mapel' => $exam->mataPelajaran?->nama ?? '-',
+                                    'kelas' => $exam->kelasData?->nama_kelas ?? $exam->kelas ?? '-',
+                                    'guru' => $exam->guru?->nama ?? '-',
+                                    'questions_count' => (int) ($totalQuestions ?? 0),
+                                    'attempts_count' => (int) ($totalParticipants ?? 0),
+                                    'in_progress_count' => (int) ($inProgressAttemptsCount ?? 0),
+                                    'synced_banks_count' => (int) ($syncedQuestionBanksCount ?? 0),
+                                    'return_query' => '',
+                                ];
+                            @endphp
+                            <button
+                                type="button"
+                                data-exam="{{ json_encode($deletePayload) }}"
+                                @click="$dispatch('open-delete-exam-modal', JSON.parse($el.dataset.exam))"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-bold text-rose-700 shadow-sm transition hover:bg-rose-100"
+                            >
+                                Hapus Ujian
+                            </button>
+                        @endif
                     @endif
                     <a href="{{ ($isGuruView ?? false) ? route('guru.ujian.index') : route('ujian.index') }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
                         &larr; Kembali
@@ -132,4 +168,8 @@
 
         </div>
     </div>
+
+    @if (! ($isGuruView ?? false) && Auth::user()->isAdmin())
+        @include('ujian._delete-modal')
+    @endif
 </x-app-layout>
