@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="status_locked">Terkunci</string>
+    <string name="status_screenshot_allowed">Screenshot OK</string>
+    <string name="btn_exit">Keluar</string>
+    <string name="btn_reload">Muat Ulang</string>
+    <string name="camera_title">Foto Jawaban Essay</string>
+    <string name="camera_retake">Ulangi</string>
+    <string name="camera_use_photo">Gunakan Foto</string>
+</resources>

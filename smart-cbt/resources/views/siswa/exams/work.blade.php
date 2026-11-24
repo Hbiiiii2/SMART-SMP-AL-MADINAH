@@ -1477,6 +1477,11 @@
                 }
             }
 
+            if (window.SmartCbtNative && typeof window.SmartCbtNative.openEssayCamera === 'function') {
+                window.SmartCbtNative.openEssayCamera(qId, replaceAttachmentId ? String(replaceAttachmentId) : '');
+                return;
+            }
+
             cameraState.active = true;
             cameraState.questionId = qId;
             cameraState.replaceAttachmentId = replaceAttachmentId ? String(replaceAttachmentId) : null;
@@ -1711,6 +1716,50 @@
                 els.modal.style.display = 'none';
             }
         }
+
+        window.__onSmartCbtNativePhoto = function (questionId, base64Data, fileName, replaceAttachmentId) {
+            const qId = String(questionId || '');
+            if (!qId || !base64Data) {
+                return;
+            }
+
+            try {
+                const rawPayload = String(base64Data).trim();
+                const base64Clean = rawPayload.includes(',') ? rawPayload.split(',')[1] : rawPayload;
+                const binary = atob(base64Clean);
+                const len = binary.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+
+                const blob = new Blob([bytes], { type: 'image/jpeg' });
+                const resolvedName = fileName || `kamera_jawaban_${Date.now()}.jpg`;
+                let fileObj;
+                try {
+                    fileObj = new File([blob], resolvedName, { type: 'image/jpeg' });
+                } catch (e) {
+                    blob.name = resolvedName;
+                    fileObj = blob;
+                }
+
+                handlePhotoFilesSelected(
+                    qId,
+                    [fileObj],
+                    replaceAttachmentId ? String(replaceAttachmentId) : null
+                );
+            } catch (err) {
+                console.error('Failed to process native camera photo:', err);
+                showPhotoError(qId, 'Gagal memproses foto dari kamera aplikasi.');
+            }
+        };
+
+        window.__onSmartCbtNativeCameraError = function (questionId, errorMessage) {
+            const qId = String(questionId || '');
+            if (qId && errorMessage) {
+                showPhotoError(qId, String(errorMessage));
+            }
+        };
 
         async function compressImageFile(file) {
             const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];

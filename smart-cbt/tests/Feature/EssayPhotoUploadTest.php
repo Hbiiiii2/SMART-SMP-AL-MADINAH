@@ -155,6 +155,8 @@ test('student can upload, replace, delete, and view essay photo answers for essa
         ->assertSee('Jawaban Foto')
         ->assertSee('embedded-camera-modal')
         ->assertSee('openEmbeddedCamera')
+        ->assertSee('SmartCbtNative')
+        ->assertSee('__onSmartCbtNativePhoto')
         ->assertSee(Storage::url($ctx['qEssay2']->image));
 
     // 2. Upload JPEG to essay_1

@@ -1,0 +1,48 @@
+name: SmartCBT
+options:
+  bundleIdPrefix: id.sch.smpaickkmb
+  deploymentTarget:
+    iOS: "15.0"
+  xcodeVersion: "15.0"
+
+configs:
+  Debug: debug
+  Release: release
+
+configFiles:
+  Debug: Config/SchoolConfig.xcconfig
+  Release: Config/SchoolConfig.xcconfig
+
+targets:
+  SmartCBT:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: SmartCBT
+    configFiles:
+      Debug: Config/SchoolConfig.xcconfig
+      Release: Config/SchoolConfig.xcconfig
+    settings:
+      base:
+        INFOPLIST_FILE: SmartCBT/Info.plist
+        CODE_SIGN_ENTITLEMENTS: SmartCBT/SmartCBT.entitlements
+        SWIFT_VERSION: "5.0"
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+    dependencies:
+      - sdk: AutomaticAssessmentConfiguration.framework
+        embed: false
+      - sdk: AVFoundation.framework
+        embed: false
+      - sdk: CryptoKit.framework
+        embed: false
+      - sdk: Network.framework
+        embed: false
+      - sdk: Security.framework
+        embed: false
+      - sdk: WebKit.framework
+        embed: false

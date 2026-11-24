@@ -1,0 +1,350 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B00000010000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000010000000000000001 /* AppDelegate.swift */; };
+		B00000010000000000000002 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000010000000000000002 /* SceneDelegate.swift */; };
+		B00000010000000000000003 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000010000000000000003 /* MainViewController.swift */; };
+		B00000010000000000000004 /* SchoolConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000010000000000000004 /* SchoolConfigManager.swift */; };
+		B00000010000000000000005 /* ExamLockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000010000000000000005 /* ExamLockController.swift */; };
+		B00000010000000000000006 /* InAppCameraViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000010000000000000006 /* InAppCameraViewController.swift */; };
+		B00000010000000000000007 /* SmartCbtJsBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000010000000000000007 /* SmartCbtJsBridge.swift */; };
+		B00000010000000000000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00000010000000000000008 /* Assets.xcassets */; };
+		B00000010000000000000009 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F00000010000000000000009 /* LaunchScreen.storyboard */; };
+		B00000020000000000000001 /* AutomaticAssessmentConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00000020000000000000001 /* AutomaticAssessmentConfiguration.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		B00000020000000000000002 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00000020000000000000002 /* AVFoundation.framework */; };
+		B00000020000000000000003 /* CryptoKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00000020000000000000003 /* CryptoKit.framework */; };
+		B00000020000000000000004 /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00000020000000000000004 /* Network.framework */; };
+		B00000020000000000000005 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00000020000000000000005 /* Security.framework */; };
+		B00000020000000000000006 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00000020000000000000006 /* WebKit.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A00000020000000000000001 /* SchoolConfig.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = SchoolConfig.xcconfig; path = Config/SchoolConfig.xcconfig; sourceTree = "<group>"; };
+		F00000000000000000000001 /* SmartCBT.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartCBT.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F00000010000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		F00000010000000000000002 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		F00000010000000000000003 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		F00000010000000000000004 /* SchoolConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchoolConfigManager.swift; sourceTree = "<group>"; };
+		F00000010000000000000005 /* ExamLockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExamLockController.swift; sourceTree = "<group>"; };
+		F00000010000000000000006 /* InAppCameraViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppCameraViewController.swift; sourceTree = "<group>"; };
+		F00000010000000000000007 /* SmartCbtJsBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCbtJsBridge.swift; sourceTree = "<group>"; };
+		F00000010000000000000008 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F00000010000000000000009 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		F00000010000000000000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F00000010000000000000011 /* SmartCBT.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SmartCBT.entitlements; sourceTree = "<group>"; };
+		F00000020000000000000001 /* AutomaticAssessmentConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AutomaticAssessmentConfiguration.framework; path = System/Library/Frameworks/AutomaticAssessmentConfiguration.framework; sourceTree = SDKROOT; };
+		F00000020000000000000002 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		F00000020000000000000003 /* CryptoKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CryptoKit.framework; path = System/Library/Frameworks/CryptoKit.framework; sourceTree = SDKROOT; };
+		F00000020000000000000004 /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
+		F00000020000000000000005 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		F00000020000000000000006 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F10000010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000020000000000000001 /* AutomaticAssessmentConfiguration.framework in Frameworks */,
+				B00000020000000000000002 /* AVFoundation.framework in Frameworks */,
+				B00000020000000000000003 /* CryptoKit.framework in Frameworks */,
+				B00000020000000000000004 /* Network.framework in Frameworks */,
+				B00000020000000000000005 /* Security.framework in Frameworks */,
+				B00000020000000000000006 /* WebKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000010000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A00000020000000000000001 /* SchoolConfig.xcconfig */,
+				A00000010000000000000002 /* SmartCBT */,
+				A00000010000000000000008 /* Frameworks */,
+				A00000010000000000000009 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A00000010000000000000002 /* SmartCBT */ = {
+			isa = PBXGroup;
+			children = (
+				F00000010000000000000001 /* AppDelegate.swift */,
+				F00000010000000000000002 /* SceneDelegate.swift */,
+				F00000010000000000000003 /* MainViewController.swift */,
+				A00000010000000000000003 /* Config */,
+				A00000010000000000000004 /* Security */,
+				A00000010000000000000005 /* Camera */,
+				A00000010000000000000006 /* WebView */,
+				F00000010000000000000008 /* Assets.xcassets */,
+				F00000010000000000000009 /* LaunchScreen.storyboard */,
+				F00000010000000000000010 /* Info.plist */,
+				F00000010000000000000011 /* SmartCBT.entitlements */,
+			);
+			path = SmartCBT;
+			sourceTree = "<group>";
+		};
+		A00000010000000000000003 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				F00000010000000000000004 /* SchoolConfigManager.swift */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		A00000010000000000000004 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				F00000010000000000000005 /* ExamLockController.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		A00000010000000000000005 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				F00000010000000000000006 /* InAppCameraViewController.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		A00000010000000000000006 /* WebView */ = {
+			isa = PBXGroup;
+			children = (
+				F00000010000000000000007 /* SmartCbtJsBridge.swift */,
+			);
+			path = WebView;
+			sourceTree = "<group>";
+		};
+		A00000010000000000000008 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				F00000020000000000000001 /* AutomaticAssessmentConfiguration.framework */,
+				F00000020000000000000002 /* AVFoundation.framework */,
+				F00000020000000000000003 /* CryptoKit.framework */,
+				F00000020000000000000004 /* Network.framework */,
+				F00000020000000000000005 /* Security.framework */,
+				F00000020000000000000006 /* WebKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A00000010000000000000009 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F00000000000000000000001 /* SmartCBT.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		T00000010000000000000001 /* SmartCBT */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C00000020000000000000001 /* Build configuration list for PBXNativeTarget "SmartCBT" */;
+			buildPhases = (
+				S00000010000000000000001 /* Sources */,
+				F10000010000000000000001 /* Frameworks */,
+				R00000010000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SmartCBT;
+			productName = SmartCBT;
+			productReference = F00000000000000000000001 /* SmartCBT.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		P00000010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					T00000010000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = C00000010000000000000001 /* Build configuration list for PBXProject "SmartCBT" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = id;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				id,
+				en,
+				Base,
+			);
+			mainGroup = A00000010000000000000001;
+			productRefGroup = A00000010000000000000009 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				T00000010000000000000001 /* SmartCBT */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		R00000010000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000010000000000000008 /* Assets.xcassets in Resources */,
+				B00000010000000000000009 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		S00000010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000010000000000000001 /* AppDelegate.swift in Sources */,
+				B00000010000000000000002 /* SceneDelegate.swift in Sources */,
+				B00000010000000000000003 /* MainViewController.swift in Sources */,
+				B00000010000000000000004 /* SchoolConfigManager.swift in Sources */,
+				B00000010000000000000005 /* ExamLockController.swift in Sources */,
+				B00000010000000000000006 /* InAppCameraViewController.swift in Sources */,
+				B00000010000000000000007 /* SmartCbtJsBridge.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		D00000010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A00000020000000000000001 /* SchoolConfig.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D00000010000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A00000020000000000000001 /* SchoolConfig.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D00000020000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A00000020000000000000001 /* SchoolConfig.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SmartCBT/SmartCBT.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SmartCBT/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = SmartCBT;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D00000020000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A00000020000000000000001 /* SchoolConfig.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SmartCBT/SmartCBT.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SmartCBT/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = SmartCBT;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C00000010000000000000001 /* Build configuration list for PBXProject "SmartCBT" */ = {
+			isa = XCBuildConfigurationList;
+			buildConfigurations = (
+				D00000010000000000000001 /* Debug */,
+				D00000010000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C00000020000000000000001 /* Build configuration list for PBXNativeTarget "SmartCBT" */ = {
+			isa = XCBuildConfigurationList;
+			buildConfigurations = (
+				D00000020000000000000001 /* Debug */,
+				D00000020000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = P00000010000000000000001 /* Project object */;
+}

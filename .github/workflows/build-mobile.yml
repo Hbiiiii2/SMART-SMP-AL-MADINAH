@@ -1,0 +1,101 @@
+name: Build SMART-CBT Mobile (iOS & Android)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'smart-cbt-mobile/**'
+      - '.github/workflows/build-mobile.yml'
+
+jobs:
+  build-ios:
+    name: Build iOS (macOS)
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: smart-cbt-mobile/ios
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Swift Core Unit Tests
+        run: swift test
+
+      - name: Build iOS Simulator App
+        run: |
+          SIM_OUT="$PWD/build-sim"
+          xcodebuild \
+            -project SmartCBT.xcodeproj \
+            -scheme SmartCBT \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CONFIGURATION_BUILD_DIR="$SIM_OUT" \
+            build
+          cd "$SIM_OUT"
+          zip -r "$OLDPWD/SMART-CBT-iOS-Simulator.app.zip" SmartCBT.app
+
+      - name: Build Unsigned iOS Device IPA (Sideloadly / AltStore / Re-Sign Ready)
+        run: |
+          IOS_OUT="$PWD/build-iphoneos"
+          xcodebuild \
+            -project SmartCBT.xcodeproj \
+            -scheme SmartCBT \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CONFIGURATION_BUILD_DIR="$IOS_OUT" \
+            build
+          rm -rf build-ipa
+          mkdir -p build-ipa/Payload
+          cp -r "$IOS_OUT/SmartCBT.app" build-ipa/Payload/
+          cd build-ipa
+          zip -r "$OLDPWD/SMART-CBT-iOS-v1.0-unsigned.ipa" Payload
+
+      - name: Upload iOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SMART-CBT-iOS
+          path: |
+            smart-cbt-mobile/ios/SMART-CBT-iOS-v1.0-unsigned.ipa
+            smart-cbt-mobile/ios/SMART-CBT-iOS-Simulator.app.zip
+
+  build-android:
+    name: Build Android (Linux)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: smart-cbt-mobile/android
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Run Unit Tests & Build APKs
+        run: ./gradlew testDebugUnitTest assembleDebug assembleRelease --no-daemon
+
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SMART-CBT-Android
+          path: |
+            smart-cbt-mobile/android/app/build/outputs/apk/debug/app-debug.apk
+            smart-cbt-mobile/android/app/build/outputs/apk/release/*.apk

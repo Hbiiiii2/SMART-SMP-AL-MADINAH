@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/slate_900"
+    android:orientation="vertical">
+
+    <!-- Top Security Toolbar -->
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@color/slate_900"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="8dp">
+
+        <TextView
+            android:id="@+id/tvAppTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:paddingEnd="8dp"
+            android:text="SMART-CBT"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvSecurityBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_badge_locked"
+            android:paddingStart="8dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="3dp"
+            android:text="@string/status_locked"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <View
+            android:id="@+id/viewNetworkDot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_dot_online" />
+
+        <TextView
+            android:id="@+id/tvBattery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="--%"
+            android:textColor="#CBD5E1"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnRefresh"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:minWidth="0dp"
+            android:paddingStart="8dp"
+            android:paddingTop="0dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="0dp"
+            android:text="Muat"
+            android:textAllCaps="false"
+            android:textColor="#93C5FD"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnExit"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:layout_marginStart="4dp"
+            android:backgroundTint="@color/rose_600"
+            android:minWidth="0dp"
+            android:paddingStart="12dp"
+            android:paddingTop="0dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="0dp"
+            android:text="@string/btn_exit"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Main Content Container -->
+    <FrameLayout
+        android:id="@+id/contentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/slate_50">
+
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_gravity="top"
+            android:indeterminate="false"
+            android:max="100"
+            android:progressTint="@color/blue_600"
+            android:visibility="gone" />
+
+        <!-- Offline / Error Overlay -->
+        <LinearLayout
+            android:id="@+id/layoutErrorOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/slate_50"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Koneksi Terputus"
+                android:textColor="@color/slate_900"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvErrorMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="Tidak dapat terhubung ke server ujian. Pastikan Wi-Fi atau data seluler aktif lalu coba lagi."
+                android:textColor="@color/slate_500"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnRetryLoad"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:backgroundTint="@color/blue_600"
+                android:text="@string/btn_reload"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Anti-Cheat Focus / Split-Screen Warning Overlay -->
+        <LinearLayout
+            android:id="@+id/layoutWarningOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#F20F172A"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="28dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvWarningTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Peringatan Keamanan Ujian"
+                android:textColor="@color/amber_500"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvWarningMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:text="Terdeteksi perpindahan aplikasi atau layar belah. Halaman ujian dikunci sementara."
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnWarningResume"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="24dp"
+                android:backgroundTint="@color/blue_600"
+                android:text="Lanjutkan Ujian"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnWarningExit"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="10dp"
+                android:backgroundTint="@color/rose_600"
+                android:text="Keluar (Kode Akses Guru)"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Built-In In-App Camera2 Overlay (Never Leaves LockTask) -->
+        <FrameLayout
+            android:id="@+id/layoutCameraOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#FF000000"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+
+            <TextureView
+                android:id="@+id/cameraTextureView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center" />
+
+            <ImageView
+                android:id="@+id/cameraPreviewImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#FF000000"
+                android:contentDescription="@string/camera_title"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <!-- Camera Top Bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top"
+                android:background="#990F172A"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/camera_title"
+                    android:textColor="@color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnCameraFlash"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="Flash: Off"
+                    android:textAllCaps="false"
+                    android:textColor="#FCD34D"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnCameraSwitch"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="Balik"
+                    android:textAllCaps="false"
+                    android:textColor="#93C5FD"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnCameraClose"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="Tutup"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Camera Bottom Controls -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:background="#B30F172A"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/tvCameraStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:text="Arahkan kamera ke kertas jawaban, ketuk layar untuk fokus"
+                    android:textColor="#E2E8F0"
+                    android:textSize="12sp" />
+
+                <!-- Live Mode Shutter Controls -->
+                <LinearLayout
+                    android:id="@+id/cameraControlsLive"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/btnCapturePhoto"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@drawable/bg_shutter_button"
+                        android:contentDescription="Jepret Foto" />
+                </LinearLayout>
+
+                <!-- Preview Mode Controls -->
+                <LinearLayout
+                    android:id="@+id/cameraControlsPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <Button
+                        android:id="@+id/btnRetakePhoto"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/slate_700"
+                        android:text="@string/camera_retake"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnUsePhoto"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/emerald_600"
+                        android:text="@string/camera_use_photo"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
+
+    </FrameLayout>
+
+</LinearLayout>
