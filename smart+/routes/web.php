@@ -59,9 +59,9 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // --- E-Rapor Akademik Terintegrasi ---
-Route::prefix('erapor')->name('erapor.')->middleware(['auth', 'role:super_admin,admin_sekolah,guru,kepala_sekolah'])->group(function () {
+Route::prefix('erapor')->name('erapor.')->middleware(['auth', 'role:super_admin,admin_sekolah,guru,kepala_sekolah,akun_demo'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Erapor\EraporDashboardController::class, 'index'])
-        ->middleware('role:super_admin,admin_sekolah,kepala_sekolah')
+        ->middleware('role:super_admin,admin_sekolah,kepala_sekolah,akun_demo')
         ->name('dashboard');
 
     // Buku Nilai Mapel
@@ -75,7 +75,7 @@ Route::prefix('erapor')->name('erapor.')->middleware(['auth', 'role:super_admin,
     });
 
     // Integrasi Nilai CBT & Fallback Excel (Hanya Admin Sekolah, Kepala Sekolah, Super Admin)
-    Route::prefix('cbt')->name('cbt.')->middleware('role:super_admin,admin_sekolah,kepala_sekolah')->group(function () {
+    Route::prefix('cbt')->name('cbt.')->middleware('role:super_admin,admin_sekolah,kepala_sekolah,akun_demo')->group(function () {
         Route::get('/', [\App\Http\Controllers\Erapor\CbtSyncController::class, 'index'])->name('index');
         Route::match(['get', 'post'], '/sync-api', [\App\Http\Controllers\Erapor\CbtSyncController::class, 'syncApi'])->name('sync-api');
         Route::post('/import-excel', [\App\Http\Controllers\Erapor\CbtSyncController::class, 'importExcel'])->name('import-excel');
@@ -92,7 +92,7 @@ Route::prefix('erapor')->name('erapor.')->middleware(['auth', 'role:super_admin,
     });
 
     // Buku Induk & Arsip Siswa / Alumni (Hanya Admin Sekolah, Kepala Sekolah, Super Admin)
-    Route::prefix('buku-induk')->name('buku-induk.')->middleware('role:super_admin,admin_sekolah,kepala_sekolah')->group(function () {
+    Route::prefix('buku-induk')->name('buku-induk.')->middleware('role:super_admin,admin_sekolah,kepala_sekolah,akun_demo')->group(function () {
         Route::get('/', [\App\Http\Controllers\Erapor\BukuIndukController::class, 'index'])->name('index');
         Route::get('/{siswa}', [\App\Http\Controllers\Erapor\BukuIndukController::class, 'show'])->name('show');
         Route::get('/{siswa}/print', [\App\Http\Controllers\Erapor\BukuIndukController::class, 'print'])->name('print');
@@ -105,7 +105,7 @@ Route::prefix('erapor')->name('erapor.')->middleware(['auth', 'role:super_admin,
         Route::get('/catatan-wali-kelas', [\App\Http\Controllers\Erapor\CetakRaporController::class, 'catatanWaliKelas'])->name('catatan-wali');
         Route::post('/catatan-wali-kelas', [\App\Http\Controllers\Erapor\CetakRaporController::class, 'saveCatatanWaliKelas'])->name('save-catatan-wali');
         Route::post('/catatan-wali-kelas/generate-ai', [\App\Http\Controllers\Erapor\CetakRaporController::class, 'generateAiCatatan'])->name('ai-catatan-wali');
-        Route::middleware('role:super_admin,admin_sekolah,kepala_sekolah')->group(function () {
+        Route::middleware('role:super_admin,admin_sekolah,kepala_sekolah,akun_demo')->group(function () {
             Route::get('/pengaturan', [\App\Http\Controllers\Erapor\CetakRaporController::class, 'pengaturan'])->name('pengaturan');
             Route::post('/pengaturan', [\App\Http\Controllers\Erapor\CetakRaporController::class, 'updatePengaturan'])->name('update-pengaturan');
             Route::post('/pengaturan/homerooms', [\App\Http\Controllers\Erapor\CetakRaporController::class, 'updateHomerooms'])->name('update-homerooms');
@@ -123,7 +123,7 @@ Route::prefix('erapor')->name('erapor.')->middleware(['auth', 'role:super_admin,
 });
 
 
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,admin_sekolah'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,admin_sekolah,akun_demo'])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profil', [ProfileController::class, 'update'])->name('profile.update');
@@ -144,7 +144,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
     Route::put('/pengaturan-sekolah', [PengaturanSekolahController::class, 'update'])->name('pengaturan-sekolah.update');
     Route::resource('update-history', \App\Http\Controllers\UpdateHistoryController::class);
 
-    Route::prefix('backup')->name('backup.')->group(function () {
+    Route::prefix('backup')->name('backup.')->middleware('role:super_admin,admin_sekolah')->group(function () {
         Route::get('/', [\App\Http\Controllers\BackupController::class, 'index'])->name('index');
         Route::get('/export', [\App\Http\Controllers\BackupController::class, 'export'])->name('export');
         Route::post('/import', [\App\Http\Controllers\BackupController::class, 'import'])->name('import');
@@ -200,7 +200,7 @@ Route::prefix('guru')->name('guru.')->middleware(['auth', 'role:guru'])->group(f
     Route::post('/tugas/{tugas}/nilai/{pengumpulan}', [\App\Http\Controllers\Guru\TugasController::class, 'nilai'])->name('tugas.nilai')->withoutScopedBindings();
 });
 
-Route::prefix('kepala-sekolah')->name('ks.')->middleware(['auth', 'role:kepala_sekolah,super_admin,admin_sekolah'])->group(function () {
+Route::prefix('kepala-sekolah')->name('ks.')->middleware(['auth', 'role:kepala_sekolah,super_admin,admin_sekolah,akun_demo'])->group(function () {
     Route::get('/dashboard', [KepalaDashboardController::class, 'index'])->name('dashboard');
     Route::post('/kpi/target', [KepalaDashboardController::class, 'updateKpiTarget'])->name('kpi.update-target');
     Route::get('/kpi/export', [KepalaDashboardController::class, 'exportKpiGuru'])->name('kpi.export');
@@ -224,13 +224,15 @@ Route::prefix('kepala-sekolah')->name('ks.')->middleware(['auth', 'role:kepala_s
     Route::get('/cuti', [CutiController::class, 'index'])->name('cuti.index');
     Route::post('/cuti/{cuti}/process', [CutiController::class, 'process'])->name('cuti.process');
 
-    Route::get('/absensi-saya', [KepalaSelfAbsensiController::class, 'index'])->name('absensi-saya.index');
-    Route::get('/absensi-saya/status', [KepalaSelfAbsensiController::class, 'status'])->name('absensi-saya.status');
-    Route::post('/absensi-saya/checkin', [KepalaSelfAbsensiController::class, 'checkin'])->name('absensi-saya.checkin');
+    Route::middleware('role:kepala_sekolah,super_admin,admin_sekolah')->group(function () {
+        Route::get('/absensi-saya', [KepalaSelfAbsensiController::class, 'index'])->name('absensi-saya.index');
+        Route::get('/absensi-saya/status', [KepalaSelfAbsensiController::class, 'status'])->name('absensi-saya.status');
+        Route::post('/absensi-saya/checkin', [KepalaSelfAbsensiController::class, 'checkin'])->name('absensi-saya.checkin');
+    });
 });
 
 
-Route::prefix('direktur')->name('direktur.')->middleware(['auth', 'role:direktur,super_admin,admin_sekolah'])->group(function () {
+Route::prefix('direktur')->name('direktur.')->middleware(['auth', 'role:direktur,super_admin,admin_sekolah,akun_demo'])->group(function () {
     Route::get('/dashboard', [DirekturDashboardController::class, 'index'])->name('dashboard');
     Route::post('/kpi/target', [DirekturDashboardController::class, 'updateKpiTarget'])->name('kpi.update-target');
     Route::get('/kpi/export', [DirekturDashboardController::class, 'exportKpiStaff'])->name('kpi.export');

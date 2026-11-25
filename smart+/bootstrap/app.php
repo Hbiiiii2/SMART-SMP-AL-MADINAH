@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->web(append: [
             \App\Http\Middleware\SecurityHeaders::class,
+            \App\Http\Middleware\DemoAccountMiddleware::class,
         ]);
         $middleware->validateCsrfTokens(except: [
             'api/*',
@@ -36,11 +37,15 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e, $request) {
+            $message = $e->getMessage() ?: 'Forbidden.';
+
             if ($request->expectsJson() || $request->is('api/*')) {
-                return response()->json(['message' => 'Forbidden.'], 403);
+                return response()->json(['message' => $message], 403);
             }
 
-            return response()->view('pages.errors.error-403', [], 403);
+            return response()->view('pages.errors.error-403', [
+                'message' => $e->getMessage() ?: 'Anda tidak memiliki izin untuk mengakses halaman ini.',
+            ], 403);
         });
 
         $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, $request) {

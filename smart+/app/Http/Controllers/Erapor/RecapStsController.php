@@ -48,7 +48,7 @@ class RecapStsController extends Controller
         $selectedClass = $request->get('kelas', $classes->first());
 
         // Ensure calculations are up to date
-        if ($selectedClass) {
+        if ($selectedClass && !auth()->user()?->isAkunDemo()) {
             $this->gradingService->recalculateClassSTS($selectedClass, $tahunAjaranId, $semester);
         }
 
@@ -175,7 +175,9 @@ class RecapStsController extends Controller
         $selectedYear = TahunAjaran::find($tahunAjaranId) ?? $activeYear;
         $semester = $request->get('semester', 'Ganjil');
 
-        $this->gradingService->recalculateClassSTS($kelas, $tahunAjaranId, $semester);
+        if (!auth()->user()?->isAkunDemo()) {
+            $this->gradingService->recalculateClassSTS($kelas, $tahunAjaranId, $semester);
+        }
         $studentIds = $this->gradingService->resolveClassStudents($kelas, $tahunAjaranId, $semester)->pluck('id');
         $hasUasScores = $this->gradingService->hasUasScoresForStudents($studentIds, $tahunAjaranId, $semester);
         $mode = $request->get('mode', $hasUasScores ? 'uas' : 'sts');

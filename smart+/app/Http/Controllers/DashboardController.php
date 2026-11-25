@@ -19,6 +19,7 @@ class DashboardController extends Controller
                 'direktur' => redirect()->route('direktur.dashboard'),
                 'staff_akademik' => redirect()->route('staff.dashboard'),
                 'siswa' => redirect()->route('siswa.dashboard'),
+                'akun_demo' => redirect()->route('admin.dashboard'),
                 default => redirect()->route('login'),
             };
         }

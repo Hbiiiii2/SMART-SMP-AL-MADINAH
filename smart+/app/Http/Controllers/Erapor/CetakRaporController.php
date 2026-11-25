@@ -105,7 +105,9 @@ class CetakRaporController extends Controller
         }
 
         // Ensure class STS & UAS summaries and rankings are up-to-date
-        $gradingService->recalculateClassSTS($kelas, $tahunId, $semester);
+        if ($kelas && !auth()->user()?->isAkunDemo()) {
+            $gradingService->recalculateClassSTS($kelas, $tahunId, $semester);
+        }
 
         // Fetch STS/UAS Summaries for this class & period
         $stsSummaries = StudentStsSummary::whereIn('siswa_id', $students->pluck('id'))
@@ -168,7 +170,7 @@ class CetakRaporController extends Controller
             ->get();
 
         $gradingService = app(GradingCalculationService::class);
-        if ($kelas) {
+        if ($kelas && !auth()->user()?->isAkunDemo()) {
             $gradingService->recalculateClassSTS($kelas, $tahunId, $semester);
         }
         $hasUasScores = $gradingService->hasUasScoresForStudents($students->pluck('id'), $tahunId, $semester);
@@ -535,7 +537,7 @@ class CetakRaporController extends Controller
             ->keyBy('mata_pelajaran_id');
 
         // Ensure class STS summary & rankings are up-to-date before printing
-        if ($siswa->kelas) {
+        if ($siswa->kelas && !auth()->user()?->isAkunDemo()) {
             app(\App\Services\GradingCalculationService::class)->recalculateClassSTS($siswa->kelas, $tahunId, $semester);
         }
 
@@ -685,7 +687,9 @@ class CetakRaporController extends Controller
             ->groupBy('siswa_id');
 
         // Ensure class STS & UAS summary & rankings are up-to-date before bulk printing
-        app(GradingCalculationService::class)->recalculateClassSTS($kelas, $tahunId, $semester);
+        if ($kelas && !auth()->user()?->isAkunDemo()) {
+            app(GradingCalculationService::class)->recalculateClassSTS($kelas, $tahunId, $semester);
+        }
 
         $stsSummaries = StudentStsSummary::whereIn('siswa_id', $students->pluck('id'))
             ->where('tahun_ajaran_id', $tahunId)

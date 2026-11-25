@@ -28,11 +28,16 @@
             <form method="GET" action="{{ route('admin.users.index') }}">
                 <div class="flex items-center gap-3">
                     <select name="role"
-                        class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 md:w-48">
+                        class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 md:w-56">
                         <option value="">Semua Role</option>
-                        <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="super_admin" {{ request('role') == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
+                        <option value="admin_sekolah" {{ request('role') == 'admin_sekolah' ? 'selected' : '' }}>Admin Sekolah</option>
+                        <option value="kepala_sekolah" {{ request('role') == 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
+                        <option value="direktur" {{ request('role') == 'direktur' ? 'selected' : '' }}>Direktur</option>
                         <option value="guru" {{ request('role') == 'guru' ? 'selected' : '' }}>Guru</option>
+                        <option value="staff_akademik" {{ request('role') == 'staff_akademik' ? 'selected' : '' }}>Staff Akademik</option>
                         <option value="siswa" {{ request('role') == 'siswa' ? 'selected' : '' }}>Siswa</option>
+                        <option value="akun_demo" {{ request('role') == 'akun_demo' ? 'selected' : '' }}>Akun Demo</option>
                     </select>
                     <button type="submit"
                         class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white transition">
@@ -51,6 +56,7 @@
                         <th class="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
                         <th class="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
                         <th class="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
+                        <th class="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Masa Berlaku</th>
                         <th class="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Aksi</th>
                     </tr>
                 </thead>
@@ -61,13 +67,33 @@
                             <td class="px-5 py-3 text-gray-800 dark:text-white/90">{{ $user->name }}</td>
                             <td class="px-5 py-3 text-gray-800 dark:text-white/90">{{ $user->email }}</td>
                             <td class="px-5 py-3">
-                                <span class="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">{{ ucfirst($user->role) }}</span>
+                                @if($user->isAkunDemo())
+                                    <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">{{ $user->roleLabel() }}</span>
+                                @else
+                                    <span class="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">{{ $user->roleLabel() }}</span>
+                                @endif
                             </td>
                             <td class="px-5 py-3">
                                 @if($user->is_active)
                                     <span class="inline-flex items-center rounded-full bg-success-50 px-2.5 py-0.5 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">Aktif</span>
                                 @else
                                     <span class="inline-flex items-center rounded-full bg-error-50 px-2.5 py-0.5 text-xs font-medium text-error-700 dark:bg-error-500/10 dark:text-error-400">Nonaktif</span>
+                                @endif
+                            </td>
+                            <td class="px-5 py-3">
+                                @if($user->expired_at)
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-xs text-gray-700 dark:text-gray-300">
+                                            {{ $user->expired_at->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB
+                                        </span>
+                                        @if($user->isExpired())
+                                            <span class="inline-flex w-fit items-center rounded-full bg-error-50 px-2 py-0.5 text-[11px] font-medium text-error-700 dark:bg-error-500/10 dark:text-error-400">Expired</span>
+                                        @else
+                                            <span class="inline-flex w-fit items-center rounded-full bg-success-50 px-2 py-0.5 text-[11px] font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">Berlaku ({{ $user->expired_at->diffForHumans() }})</span>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="text-xs text-gray-400 dark:text-gray-500">-</span>
                                 @endif
                             </td>
                             <td class="px-5 py-3">
@@ -97,7 +123,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-5 py-8 text-center text-gray-500 dark:text-gray-400">Tidak ada data user.</td>
+                            <td colspan="7" class="px-5 py-8 text-center text-gray-500 dark:text-gray-400">Tidak ada data user.</td>
                         </tr>
                     @endforelse
                 </tbody>

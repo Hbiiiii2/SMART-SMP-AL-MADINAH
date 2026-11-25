@@ -163,7 +163,7 @@
                         </td>
                         <td class="px-6 py-3 text-gray-600 dark:text-gray-400">{{ $abs->keterangan ?? '-' }}</td>
                         <td class="px-6 py-3">
-                            @if($abs->status === 'Alpha')
+                            @if($abs->status === 'Alpha' && !auth()->user()?->isAkunDemo())
                                 <div class="flex items-center gap-2" x-data="{ showModal: false }">
                                     <button @click="showModal = true"
                                         class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-600">Ubah Status</button>

@@ -103,6 +103,23 @@ class RaporSetting extends Model
      */
     public static function instance(): self
     {
+        if (auth()->user()?->isAkunDemo()) {
+            return self::find(1) ?? new self([
+                'nama_kurikulum' => 'Kurikulum Merdeka',
+                'tipe_judul_rapor' => 'template',
+                'show_kurikulum' => true,
+                'show_fase' => false,
+                'fase_text' => 'Fase D',
+                'ukuran_kertas' => 'A4',
+                'show_ranking' => true,
+                'show_kkm' => false,
+                'default_kkm' => 75.00,
+                'kota_pembagian' => 'Bogor',
+                'header_yayasan' => 'YAYASAN KELUARGA BESAR MASYARAKAT BANTEN (KKMB)',
+                'header_sekolah' => 'SMP AL - MADINAH ISLAMIC CENTER',
+            ]);
+        }
+
         self::ensureColumnsExist();
 
         return self::firstOrCreate(

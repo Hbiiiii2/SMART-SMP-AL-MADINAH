@@ -97,16 +97,18 @@
                 </p>
             </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2 shrink-0">
-            <button type="button" onclick="autoFillEmptyNotes()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700 transition">
-                <svg class="h-3.5 w-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                Isi Template Standar (Kosong)
-            </button>
-            <button type="button" id="btn_batch_ai" onclick="generateAllAiNotes()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 text-xs font-bold text-white shadow-sm hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-500 transition">
-                <span id="batch_ai_icon">✨</span>
-                <span id="batch_ai_label">Generate Semua via AI</span>
-            </button>
-        </div>
+        @unless(auth()->user()?->isAkunDemo())
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <button type="button" onclick="autoFillEmptyNotes()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700 transition">
+                    <svg class="h-3.5 w-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Isi Template Standar (Kosong)
+                </button>
+                <button type="button" id="btn_batch_ai" onclick="generateAllAiNotes()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 text-xs font-bold text-white shadow-sm hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-500 transition">
+                    <span id="batch_ai_icon">✨</span>
+                    <span id="batch_ai_label">Generate Semua via AI</span>
+                </button>
+            </div>
+        @endunless
     </div>
 
     <!-- Form Input Table -->
@@ -122,10 +124,12 @@
                     <h3 class="text-base font-bold text-gray-800 dark:text-white">Daftar Siswa Kelas {{ $kelas }}</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400">Total {{ $students->count() }} siswa terdaftar.</p>
                 </div>
-                <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    Simpan Semua Catatan
-                </button>
+                @unless(auth()->user()?->isAkunDemo())
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Simpan Semua Catatan
+                    </button>
+                @endunless
             </div>
 
             <div class="max-w-full overflow-x-auto">
@@ -211,37 +215,40 @@
                                             id="note_{{ $s->id }}"
                                             data-suggestion="{{ $defaultSuggestion }}"
                                             rows="2"
+                                            {{ auth()->user()?->isAkunDemo() ? 'readonly' : '' }}
                                             class="w-full rounded-xl border border-gray-300 p-2.5 text-xs text-gray-800 placeholder-gray-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
                                             placeholder="Tuliskan catatan wali kelas untuk {{ $s->nama_lengkap }}..."
                                         >{{ old('catatan.' . $s->id, $sts?->catatan_wali_kelas) }}</textarea>
 
-                                        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
-                                            <div class="flex items-center gap-1.5 flex-wrap">
-                                                <!-- Tombol 1: Template Rule Based -->
-                                                <button
-                                                    type="button"
-                                                    onclick="applySuggestion('{{ $s->id }}')"
-                                                    title="Gunakan formula standar Kurikulum Merdeka & data presensi"
-                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 font-semibold text-[11px] transition shadow-2xs"
-                                                >
-                                                    <svg class="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                                    Template Standar
-                                                </button>
+                                        @unless(auth()->user()?->isAkunDemo())
+                                            <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <!-- Tombol 1: Template Rule Based -->
+                                                    <button
+                                                        type="button"
+                                                        onclick="applySuggestion('{{ $s->id }}')"
+                                                        title="Gunakan formula standar Kurikulum Merdeka & data presensi"
+                                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 font-semibold text-[11px] transition shadow-2xs"
+                                                    >
+                                                        <svg class="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                        Template Standar
+                                                    </button>
 
-                                                <!-- Tombol 2: AI OpenRouter Catatan Wali Kelas -->
-                                                <button
-                                                    type="button"
-                                                    id="btn_ai_{{ $s->id }}"
-                                                    onclick="generateAiNote('{{ $s->id }}')"
-                                                    title="Generate narasi personal dan islami via AI OpenRouter"
-                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:border-purple-800/60 dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/50 font-bold text-[11px] transition shadow-2xs"
-                                                >
-                                                    <span id="ai_icon_{{ $s->id }}">✨</span>
-                                                    <span id="ai_label_{{ $s->id }}">Generate via AI</span>
-                                                </button>
+                                                    <!-- Tombol 2: AI OpenRouter Catatan Wali Kelas -->
+                                                    <button
+                                                        type="button"
+                                                        id="btn_ai_{{ $s->id }}"
+                                                        onclick="generateAiNote('{{ $s->id }}')"
+                                                        title="Generate narasi personal dan islami via AI OpenRouter"
+                                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:border-purple-800/60 dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/50 font-bold text-[11px] transition shadow-2xs"
+                                                    >
+                                                        <span id="ai_icon_{{ $s->id }}">✨</span>
+                                                        <span id="ai_label_{{ $s->id }}">Generate via AI</span>
+                                                    </button>
+                                                </div>
+                                                <span class="text-[11px] text-gray-400">Maks 300 karakter</span>
                                             </div>
-                                            <span class="text-[11px] text-gray-400">Maks 300 karakter</span>
-                                        </div>
+                                        @endunless
                                     </div>
                                 </td>
                             </tr>
@@ -257,7 +264,7 @@
             </div>
 
             <!-- Footer Action -->
-            @if($students->isNotEmpty())
+            @if($students->isNotEmpty() && !auth()->user()?->isAkunDemo())
                 <div class="border-t border-gray-100 bg-gray-50/50 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 dark:border-gray-800 dark:bg-white/[0.01]">
                     <span class="text-xs text-gray-500 dark:text-gray-400">
                         Pastikan seluruh catatan sudah diteliti sebelum mencetak rapor siswa.

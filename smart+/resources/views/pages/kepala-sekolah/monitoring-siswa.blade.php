@@ -81,49 +81,51 @@
                             <div class="flex items-center gap-2">
                                 <a href="{{ route('ks.detail-siswa', $siswa) }}" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-400">Detail</a>
                                 
-                                <div x-data="{ showModal: false }">
-                                    <button @click="showModal = true"
-                                        class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-600">
-                                        Ubah Status
-                                    </button>
-                                    <div x-show="showModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4" style="display:none">
-                                        <div @click.away="showModal = false" class="w-full max-w-md rounded-2xl bg-white p-6 shadow-theme-lg dark:bg-gray-900">
-                                            <h3 class="mb-2 text-lg font-semibold text-gray-800 dark:text-white/90">Ubah Status Kehadiran</h3>
-                                            <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">{{ $siswa->nama_lengkap }} — {{ $siswa->nisn }}</p>
-                                            <form method="POST" action="{{ route('ks.monitoring-siswa.update-status', $siswa->id) }}">
-                                                @csrf
-                                                <div class="space-y-4 text-left">
-                                                    <div>
-                                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Status Baru</label>
-                                                        <select name="status" required
-                                                            class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                                                            <option value="Hadir" {{ $siswa->status_tampil == 'Hadir' ? 'selected' : '' }}>Hadir</option>
-                                                            <option value="Alfa" {{ $siswa->status_tampil == 'Alfa' ? 'selected' : '' }}>Alfa</option>
-                                                            <option value="Sakit" {{ $siswa->status_tampil == 'Sakit' ? 'selected' : '' }}>Sakit</option>
-                                                            <option value="Izin" {{ $siswa->status_tampil == 'Izin' ? 'selected' : '' }}>Izin</option>
-                                                            <option value="Terlambat" {{ $siswa->status_tampil == 'Terlambat' ? 'selected' : '' }}>Terlambat</option>
-                                                        </select>
+                                @unless(auth()->user()?->isAkunDemo())
+                                    <div x-data="{ showModal: false }">
+                                        <button @click="showModal = true"
+                                            class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-600">
+                                            Ubah Status
+                                        </button>
+                                        <div x-show="showModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4" style="display:none">
+                                            <div @click.away="showModal = false" class="w-full max-w-md rounded-2xl bg-white p-6 shadow-theme-lg dark:bg-gray-900">
+                                                <h3 class="mb-2 text-lg font-semibold text-gray-800 dark:text-white/90">Ubah Status Kehadiran</h3>
+                                                <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">{{ $siswa->nama_lengkap }} — {{ $siswa->nisn }}</p>
+                                                <form method="POST" action="{{ route('ks.monitoring-siswa.update-status', $siswa->id) }}">
+                                                    @csrf
+                                                    <div class="space-y-4 text-left">
+                                                        <div>
+                                                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Status Baru</label>
+                                                            <select name="status" required
+                                                                class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                                                <option value="Hadir" {{ $siswa->status_tampil == 'Hadir' ? 'selected' : '' }}>Hadir</option>
+                                                                <option value="Alfa" {{ $siswa->status_tampil == 'Alfa' ? 'selected' : '' }}>Alfa</option>
+                                                                <option value="Sakit" {{ $siswa->status_tampil == 'Sakit' ? 'selected' : '' }}>Sakit</option>
+                                                                <option value="Izin" {{ $siswa->status_tampil == 'Izin' ? 'selected' : '' }}>Izin</option>
+                                                                <option value="Terlambat" {{ $siswa->status_tampil == 'Terlambat' ? 'selected' : '' }}>Terlambat</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Alasan / Keterangan (opsional)</label>
+                                                            <textarea name="alasan" rows="3" placeholder="Masukkan alasan..."
+                                                                class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
+                                                        </div>
+                                                        <div class="flex items-center gap-3">
+                                                            <button type="button" @click="showModal = false"
+                                                                class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-400">
+                                                                Batal
+                                                            </button>
+                                                            <button type="submit"
+                                                                class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white transition">
+                                                                Simpan
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Alasan / Keterangan (opsional)</label>
-                                                        <textarea name="alasan" rows="3" placeholder="Masukkan alasan..."
-                                                            class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
-                                                    </div>
-                                                    <div class="flex items-center gap-3">
-                                                        <button type="button" @click="showModal = false"
-                                                            class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-400">
-                                                            Batal
-                                                        </button>
-                                                        <button type="submit"
-                                                            class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white transition">
-                                                            Simpan
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </form>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                @endunless
                             </div>
                         </td>
                     </tr>

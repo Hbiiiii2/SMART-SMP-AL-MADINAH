@@ -55,6 +55,14 @@ class AuthController extends Controller
             ])->onlyInput('email');
         }
 
+        if ($user->isExpired()) {
+            Auth::logout();
+
+            return back()->withErrors([
+                'email' => 'Masa aktif akun demo Anda telah berakhir pada ' . $user->expired_at->timezone('Asia/Jakarta')->format('d M Y H:i') . ' WIB. Silakan hubungi administrator.',
+            ])->onlyInput('email');
+        }
+
         RateLimiter::clear($throttleKey);
 
         $request->session()->regenerate();
@@ -169,6 +177,7 @@ class AuthController extends Controller
             'direktur' => redirect()->route('direktur.dashboard'),
             'staff_akademik' => redirect()->route('staff.dashboard'),
             'siswa' => redirect()->route('siswa.dashboard'),
+            'akun_demo' => redirect()->route('admin.dashboard'),
             default => redirect()->route('login'),
         };
     }

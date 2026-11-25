@@ -11,25 +11,27 @@
                 Mapel: <span class="font-semibold text-brand-600">{{ $selectedSubject?->nama }}</span>
             </p>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-            <!-- Add Item Button -->
-            <button @click="openAddItemModal = true" type="button" class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Tambah Butir Penilaian
-            </button>
+        @unless(auth()->user()?->isAkunDemo())
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Add Item Button -->
+                <button @click="openAddItemModal = true" type="button" class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Tambah Butir Penilaian
+                </button>
 
-            <!-- Sync CBT Button (Open Modal) -->
-            <button @click="openCbtModal = true" type="button" class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                Tarik Nilai CBT
-            </button>
+                <!-- Sync CBT Button (Open Modal) -->
+                <button @click="openCbtModal = true" type="button" class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    Tarik Nilai CBT
+                </button>
 
-            <!-- Sync LMS Button (Open Modal) -->
-            <button @click="openLmsModal = true" type="button" class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-purple-600 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-purple-700 transition">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                Tarik Tugas dari LMS
-            </button>
-        </div>
+                <!-- Sync LMS Button (Open Modal) -->
+                <button @click="openLmsModal = true" type="button" class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-purple-600 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-purple-700 transition">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    Tarik Tugas dari LMS
+                </button>
+            </div>
+        @endunless
     </div>
 
     <!-- Filters -->
@@ -118,8 +120,13 @@
                                            max="100" 
                                            value="{{ $val !== null ? $val : '' }}"
                                            placeholder="-"
-                                           @change="saveScore({{ $siswa->id }}, {{ $item->id }}, $event.target.value, $event.target)"
-                                           class="w-16 rounded-lg border border-gray-200 bg-white px-2 py-1 text-center text-xs font-mono focus:border-brand-500 focus:outline-none transition-colors duration-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+                                           @if(auth()->user()?->isAkunDemo())
+                                               readonly
+                                               disabled
+                                           @else
+                                               @change="saveScore({{ $siswa->id }}, {{ $item->id }}, $event.target.value, $event.target)"
+                                           @endif
+                                           class="w-16 rounded-lg border border-gray-200 bg-white px-2 py-1 text-center text-xs font-mono focus:border-brand-500 focus:outline-none transition-colors duration-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white {{ auth()->user()?->isAkunDemo() ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : '' }}">
                                 </td>
                             @endforeach
 

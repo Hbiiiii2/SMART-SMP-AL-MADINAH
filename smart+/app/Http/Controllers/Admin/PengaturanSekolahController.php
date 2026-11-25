@@ -15,7 +15,7 @@ class PengaturanSekolahController extends Controller
 
     public function edit()
     {
-        $pengaturan = PengaturanSekolah::firstOrCreate([], [
+        $defaults = [
             'nama_sekolah' => 'Nama Sekolah',
             'jam_masuk' => '07:00',
             'jam_pulang' => '15:00',
@@ -25,7 +25,11 @@ class PengaturanSekolahController extends Controller
             'metode_absensi_siswa' => 'RFID',
             'metode_absensi_guru' => 'RFID',
             'metode_absensi_staff' => 'RFID',
-        ]);
+        ];
+
+        $pengaturan = auth()->user()?->isAkunDemo()
+            ? (PengaturanSekolah::first() ?? new PengaturanSekolah($defaults))
+            : PengaturanSekolah::firstOrCreate([], $defaults);
 
         return view('pages.admin.pengaturan-sekolah.edit', [
             'title' => 'Pengaturan Sekolah',

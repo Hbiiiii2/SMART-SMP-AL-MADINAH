@@ -39,6 +39,7 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'is_active' => $request->boolean('is_active', true),
+            'expired_at' => $request->role === 'akun_demo' ? $request->expired_at : null,
         ]);
 
         if ($user->role === 'staff_akademik') {
@@ -65,6 +66,7 @@ class UserController extends Controller
         CacheService::flushDropdowns();
 
         $data = $request->validated();
+        $data['expired_at'] = $request->role === 'akun_demo' ? $request->expired_at : null;
         if (!$request->filled('password')) {
             unset($data['password']);
         } else {

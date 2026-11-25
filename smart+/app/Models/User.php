@@ -17,6 +17,7 @@ class User extends Authenticatable
         'password',
         'role',
         'is_active',
+        'expired_at',
     ];
 
     protected $hidden = [
@@ -30,6 +31,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'expired_at' => 'datetime',
         ];
     }
 
@@ -91,5 +93,30 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->role === 'super_admin';
+    }
+
+    public function isAkunDemo(): bool
+    {
+        return $this->role === 'akun_demo';
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expired_at !== null && $this->expired_at->isPast();
+    }
+
+    public function roleLabel(): string
+    {
+        return match ($this->role) {
+            'super_admin' => 'Super Admin',
+            'admin_sekolah' => 'Admin Sekolah',
+            'kepala_sekolah' => 'Kepala Sekolah',
+            'direktur' => 'Direktur',
+            'guru' => 'Guru',
+            'staff_akademik' => 'Staff Akademik',
+            'siswa' => 'Siswa',
+            'akun_demo' => 'Akun Demo',
+            default => ucwords(str_replace('_', ' ', (string) $this->role)),
+        };
     }
 }

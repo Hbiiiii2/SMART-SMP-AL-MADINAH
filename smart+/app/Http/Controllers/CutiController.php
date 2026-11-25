@@ -35,7 +35,7 @@ class CutiController extends Controller
             $cutiList = PengajuanCuti::whereHas('user', function ($query) {
                 $query->where('role', 'staff_akademik');
             })->latest()->get();
-        } elseif ($user->isAdmin() || $user->isSuperAdmin()) {
+        } elseif ($user->isAdmin() || $user->isSuperAdmin() || $user->isAkunDemo()) {
             $cutiList = PengajuanCuti::with('user')->latest()->get();
         }
 

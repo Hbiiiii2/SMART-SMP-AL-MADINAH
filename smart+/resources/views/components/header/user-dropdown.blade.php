@@ -49,9 +49,14 @@
         <div class="border-b border-gray-200 pb-3 dark:border-gray-800">
             <span class="block font-medium text-gray-700 text-theme-sm dark:text-gray-400 truncate">{{ Auth::user()->name ?? 'User' }}</span>
             <span class="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400 truncate">{{ Auth::user()->email ?? '' }}</span>
-            <span class="mt-1 inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
-                {{ ucfirst(str_replace('_', ' ', Auth::user()->role ?? '')) }}
+            <span class="mt-1 inline-flex items-center rounded-full {{ Auth::user()?->isAkunDemo() ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' : 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400' }} px-2 py-0.5 text-xs font-medium">
+                {{ Auth::user()?->roleLabel() ?? '' }}
             </span>
+            @if(Auth::user()?->isAkunDemo() && Auth::user()?->expired_at)
+                <span class="mt-1 block text-[11px] text-amber-600 dark:text-amber-400">
+                    Exp: {{ Auth::user()->expired_at->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB
+                </span>
+            @endif
         </div>
 
         <ul class="flex flex-col gap-1 pt-3 pb-2">
@@ -66,17 +71,19 @@
                     Profil Saya
                 </a>
             </li>
-            <li>
-                <a href="{{ route($prefix . '.password.edit') }}"
-                    class="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
-                    <span class="text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                        </svg>
-                    </span>
-                    Ubah Password
-                </a>
-            </li>
+            @unless(Auth::user()?->isAkunDemo())
+                <li>
+                    <a href="{{ route($prefix . '.password.edit') }}"
+                        class="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
+                        <span class="text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                        </span>
+                        Ubah Password
+                    </a>
+                </li>
+            @endunless
         </ul>
 
         <div class="border-t border-gray-200 pt-2 dark:border-gray-800">

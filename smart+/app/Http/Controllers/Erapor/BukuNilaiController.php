@@ -63,42 +63,46 @@ class BukuNilaiController extends Controller
             ['code' => 'uas', 'name' => 'UAS', 'default_count' => 1, 'default_weight' => 40.0, 'order' => 7],
         ];
 
-        foreach ($standardComponents as $sc) {
-            AssessmentComponent::firstOrCreate(
-                ['code' => $sc['code']],
-                array_merge($sc, ['is_active' => true])
-            );
+        if (!auth()->user()?->isAkunDemo()) {
+            foreach ($standardComponents as $sc) {
+                AssessmentComponent::firstOrCreate(
+                    ['code' => $sc['code']],
+                    array_merge($sc, ['is_active' => true])
+                );
+            }
         }
 
         $components = AssessmentComponent::where('is_active', true)->orderBy('order')->get();
 
         // Ensure assessment items exist for this subject/period
-        foreach ($components as $comp) {
-            for ($seq = 1; $seq <= $comp->default_count; $seq++) {
-                $itemTitle = match($comp->code) {
-                    'uh' => 'UH ' . $seq,
-                    'tugas' => 'Tugas ' . $seq,
-                    'praktek' => 'Praktek ' . $seq,
-                    'projek' => 'Projek ' . $seq,
-                    'portofolio' => 'Portofolio ' . $seq,
-                    'sts' => 'STS 1',
-                    'uas' => 'UAS',
-                    default => $comp->name . ' ' . $seq
-                };
+        if (!auth()->user()?->isAkunDemo()) {
+            foreach ($components as $comp) {
+                for ($seq = 1; $seq <= $comp->default_count; $seq++) {
+                    $itemTitle = match($comp->code) {
+                        'uh' => 'UH ' . $seq,
+                        'tugas' => 'Tugas ' . $seq,
+                        'praktek' => 'Praktek ' . $seq,
+                        'projek' => 'Projek ' . $seq,
+                        'portofolio' => 'Portofolio ' . $seq,
+                        'sts' => 'STS 1',
+                        'uas' => 'UAS',
+                        default => $comp->name . ' ' . $seq
+                    };
 
-                AssessmentItem::firstOrCreate(
-                    [
-                        'assessment_component_id' => $comp->id,
-                        'mata_pelajaran_id' => $selectedSubjectId,
-                        'tahun_ajaran_id' => $tahunAjaranId,
-                        'semester' => $semester,
-                        'sequence' => $seq,
-                    ],
-                    [
-                        'title' => $itemTitle,
-                        'max_score' => 100.0,
-                    ]
-                );
+                    AssessmentItem::firstOrCreate(
+                        [
+                            'assessment_component_id' => $comp->id,
+                            'mata_pelajaran_id' => $selectedSubjectId,
+                            'tahun_ajaran_id' => $tahunAjaranId,
+                            'semester' => $semester,
+                            'sequence' => $seq,
+                        ],
+                        [
+                            'title' => $itemTitle,
+                            'max_score' => 100.0,
+                        ]
+                    );
+                }
             }
         }
 

@@ -150,7 +150,7 @@
                             @endif
                         </td>
                         <td class="px-5 py-3">
-                            @if($canChange)
+                            @if($canChange && !auth()->user()?->isAkunDemo())
                                 <div class="flex items-center gap-2" x-data="{ showModal: false }">
                                     <button @click="showModal = true"
                                         class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-600">
@@ -194,7 +194,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            @elseif($canManual)
+                            @elseif($canManual && !auth()->user()?->isAkunDemo())
                                 <div class="flex items-center gap-2" x-data="{ showManualModal: false }">
                                     <button @click="showManualModal = true"
                                         class="inline-flex items-center justify-center rounded-lg bg-success-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-success-600">

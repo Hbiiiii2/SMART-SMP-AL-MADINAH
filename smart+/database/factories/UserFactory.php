@@ -52,6 +52,14 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function akunDemo(?\Carbon\CarbonInterface $expiredAt = null): static
+    {
+        return $this->state(fn () => [
+            'role' => 'akun_demo',
+            'expired_at' => $expiredAt ?? now()->addDays(7),
+        ]);
+    }
+
     public function inactive(): static
     {
         return $this->state(fn () => [

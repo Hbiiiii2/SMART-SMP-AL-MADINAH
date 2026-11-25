@@ -29,6 +29,7 @@ class MenuHelper
                 'siswa' => self::getSiswaMenuGroups(),
                 'direktur' => self::getDirekturMenuGroups(),
                 'staff_akademik' => self::getStaffAkademikMenuGroups(),
+                'akun_demo' => self::getAkunDemoMenuGroups(),
                 default => [],
             };
         });
@@ -36,13 +37,21 @@ class MenuHelper
 
     public static function flushCache(): void
     {
-        Cache::forget('sidebar_menu_super_admin');
-        Cache::forget('sidebar_menu_admin_sekolah');
-        Cache::forget('sidebar_menu_kepala_sekolah');
-        Cache::forget('sidebar_menu_guru');
-        Cache::forget('sidebar_menu_siswa');
-        Cache::forget('sidebar_menu_direktur');
-        Cache::forget('sidebar_menu_staff_akademik');
+        $roles = [
+            'super_admin',
+            'admin_sekolah',
+            'kepala_sekolah',
+            'guru',
+            'siswa',
+            'direktur',
+            'staff_akademik',
+            'akun_demo',
+        ];
+
+        foreach ($roles as $role) {
+            Cache::forget('sidebar_menu_' . $role);
+            Cache::forget('sidebar_menu_v2_' . $role);
+        }
     }
 
     public static function getAdminMenuGroups(): array
@@ -304,6 +313,70 @@ class MenuHelper
                     ['icon' => 'kalender', 'name' => 'Kalender Akademik', 'path' => '/kalender'],
                 ]
             ]
+        ];
+    }
+
+    public static function getAkunDemoMenuGroups(): array
+    {
+        $latestUpdate = \App\Models\UpdateHistory::where('is_published', true)->orderBy('tanggal', 'desc')->first();
+        $latestVersion = $latestUpdate ? $latestUpdate->versi : '';
+
+        return [
+            [
+                'title' => 'Menu Utama',
+                'items' => [
+                    ['icon' => 'dashboard', 'name' => 'Dashboard Admin', 'path' => '/admin/dashboard'],
+                    ['icon' => 'dashboard', 'name' => 'Dashboard Kepala Sekolah', 'path' => '/kepala-sekolah/dashboard'],
+                    ['icon' => 'dashboard', 'name' => 'Dashboard Direktur', 'path' => '/direktur/dashboard'],
+                    ['icon' => 'report', 'name' => 'Laporan Kehadiran', 'path' => '/admin/laporan'],
+                ],
+            ],
+            [
+                'title' => 'E-Rapor Terintegrasi',
+                'items' => [
+                    ['icon' => 'dashboard', 'name' => 'Dashboard E-Rapor', 'path' => '/erapor', 'new' => true],
+                    ['icon' => 'book', 'name' => 'Buku Nilai Mapel', 'path' => '/erapor/buku-nilai'],
+                    ['icon' => 'sync', 'name' => 'Integrasi CBT', 'path' => '/erapor/cbt'],
+                    ['icon' => 'report', 'name' => 'Capaian Kompetensi', 'path' => '/erapor/capaian-kompetensi', 'new' => true],
+                    ['icon' => 'rekap', 'name' => 'Rekap & Peringkat STS', 'path' => '/erapor/recap'],
+                    ['icon' => 'guru', 'name' => 'Catatan Wali Kelas', 'path' => '/erapor/cetak-rapor/catatan-wali-kelas', 'new' => true],
+                    ['icon' => 'report', 'name' => 'Cetak Rapor Siswa', 'path' => '/erapor/cetak-rapor', 'new' => true],
+                    ['icon' => 'settings', 'name' => 'Format & TTD Rapor', 'path' => '/erapor/cetak-rapor/pengaturan', 'new' => true],
+                    ['icon' => 'siswa', 'name' => 'Buku Induk & Transkrip', 'path' => '/erapor/buku-induk', 'new' => true],
+                ],
+            ],
+            [
+                'title' => 'Master Data (Preview)',
+                'items' => [
+                    ['icon' => 'calendar', 'name' => 'Tahun Ajaran', 'path' => '/admin/tahun-ajaran'],
+                    ['icon' => 'guru', 'name' => 'Data Guru', 'path' => '/admin/guru'],
+                    ['icon' => 'siswa', 'name' => 'Data Siswa', 'path' => '/admin/siswa'],
+                    ['icon' => 'book', 'name' => 'Mata Pelajaran', 'path' => '/admin/mata-pelajaran'],
+                    ['icon' => 'jadwal', 'name' => 'Jadwal Pelajaran', 'path' => '/admin/jadwal'],
+                    ['icon' => 'rfid', 'name' => 'Kartu RFID', 'path' => '/admin/rfid'],
+                    ['icon' => 'location', 'name' => 'Lokasi', 'path' => '/admin/lokasi'],
+                ],
+            ],
+            [
+                'title' => 'Monitoring & Absensi',
+                'items' => [
+                    ['icon' => 'monitor', 'name' => 'Monitoring Guru', 'path' => '/kepala-sekolah/monitoring-guru'],
+                    ['icon' => 'monitor', 'name' => 'Monitoring Siswa', 'path' => '/kepala-sekolah/monitoring-siswa'],
+                    ['icon' => 'rekap', 'name' => 'Rekap Absensi', 'path' => '/kepala-sekolah/rekap'],
+                    ['icon' => 'holiday', 'name' => 'Daftar Cuti', 'path' => '/kepala-sekolah/cuti'],
+                    ['icon' => 'absensi', 'name' => 'Kiosk Absensi', 'path' => '/kiosk'],
+                ],
+            ],
+            [
+                'title' => 'Kalender & Sekolah',
+                'items' => [
+                    ['icon' => 'kalender', 'name' => 'Kalender Akademik', 'path' => '/kalender'],
+                    ['icon' => 'kalender', 'name' => 'Tanggal Akademik', 'path' => '/admin/tanggal-akademik'],
+                    ['icon' => 'holiday', 'name' => 'Hari Libur', 'path' => '/admin/hari-libur'],
+                    ['icon' => 'settings', 'name' => 'Pengaturan Sekolah', 'path' => '/admin/pengaturan-sekolah'],
+                    ['icon' => 'history', 'name' => 'Update History', 'path' => '/admin/update-history', 'badge' => $latestVersion],
+                ],
+            ],
         ];
     }
 
