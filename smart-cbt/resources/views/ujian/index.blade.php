@@ -214,7 +214,7 @@
                                             @if (Auth::user()->isAdmin())
                                                 @php
                                                     $deletePayload = [
-                                                        'action' => route('ujian.destroy', $exam),
+                                                        'action' => route('ujian.destroy', $exam, false),
                                                         'nama' => $exam->nama,
                                                         'kode_ujian' => $exam->kode_ujian ?? '-',
                                                         'mapel' => $exam->mataPelajaran?->nama ?? '-',
@@ -225,12 +225,14 @@
                                                         'in_progress_count' => (int) ($exam->in_progress_attempts_count ?? 0),
                                                         'synced_banks_count' => (int) ($exam->synced_question_banks_count ?? 0),
                                                         'return_query' => request()->getQueryString() ?? '',
+                                                        'return_route' => 'ujian.index',
                                                     ];
                                                 @endphp
                                                 <button
                                                     type="button"
-                                                    data-exam="{{ json_encode($deletePayload) }}"
-                                                    @click="$dispatch('open-delete-exam-modal', JSON.parse($el.dataset.exam))"
+                                                    data-exam="{{ json_encode($deletePayload, JSON_UNESCAPED_SLASHES) }}"
+                                                    data-delete-exam-trigger="open-delete-exam-modal"
+                                                    onclick="window.openDeleteExamModal(this)"
                                                     class="rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
                                                 >
                                                     Hapus

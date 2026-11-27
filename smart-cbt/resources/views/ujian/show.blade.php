@@ -59,7 +59,7 @@
                         @if (Auth::user()->isAdmin())
                             @php
                                 $deletePayload = [
-                                    'action' => route('ujian.destroy', $exam),
+                                    'action' => route('ujian.destroy', $exam, false),
                                     'nama' => $exam->nama,
                                     'kode_ujian' => $exam->kode_ujian ?? '-',
                                     'mapel' => $exam->mataPelajaran?->nama ?? '-',
@@ -70,12 +70,14 @@
                                     'in_progress_count' => (int) ($inProgressAttemptsCount ?? 0),
                                     'synced_banks_count' => (int) ($syncedQuestionBanksCount ?? 0),
                                     'return_query' => '',
+                                    'return_route' => 'ujian.index',
                                 ];
                             @endphp
                             <button
                                 type="button"
-                                data-exam="{{ json_encode($deletePayload) }}"
-                                @click="$dispatch('open-delete-exam-modal', JSON.parse($el.dataset.exam))"
+                                data-exam="{{ json_encode($deletePayload, JSON_UNESCAPED_SLASHES) }}"
+                                data-delete-exam-trigger="open-delete-exam-modal"
+                                onclick="window.openDeleteExamModal(this)"
                                 class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-bold text-rose-700 shadow-sm transition hover:bg-rose-100"
                             >
                                 Hapus Ujian

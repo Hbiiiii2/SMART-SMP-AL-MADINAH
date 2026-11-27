@@ -1,55 +1,6 @@
 <div
-    x-data="{
-        open: false,
-        confirmed: false,
-        deleteSyncedBanks: false,
-        submitting: false,
-        exam: {
-            action: '',
-            nama: '',
-            kode_ujian: '',
-            mapel: '',
-            kelas: '',
-            guru: '',
-            questions_count: 0,
-            attempts_count: 0,
-            in_progress_count: 0,
-            synced_banks_count: 0,
-            return_query: '',
-        },
-        get hasDependents() {
-            return Number(this.exam.questions_count || 0) > 0 || Number(this.exam.attempts_count || 0) > 0;
-        },
-        openModal(payload) {
-            this.exam = Object.assign({
-                action: '',
-                nama: '',
-                kode_ujian: '',
-                mapel: '',
-                kelas: '',
-                guru: '',
-                questions_count: 0,
-                attempts_count: 0,
-                in_progress_count: 0,
-                synced_banks_count: 0,
-                return_query: '',
-            }, payload || {});
-            this.confirmed = false;
-            this.deleteSyncedBanks = false;
-            this.submitting = false;
-            this.open = true;
-        },
-        closeModal() {
-            if (this.submitting) {
-                return;
-            }
-            this.open = false;
-        }
-    }"
-    x-cloak
-    x-show="open"
-    @open-delete-exam-modal.window="openModal($event.detail)"
-    @keydown.escape.window="closeModal()"
+    id="delete-exam-modal"
+    style="display: none;"
     class="fixed inset-0 z-50 overflow-y-auto"
     role="dialog"
     aria-modal="true"
@@ -57,34 +8,23 @@
 >
     {{-- Backdrop --}}
     <div
-        x-show="open"
-        x-transition.opacity
+        id="delete-exam-modal-backdrop"
         class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
-        @click="closeModal()"
+        onclick="window.closeDeleteExamModal()"
     ></div>
 
     {{-- Dialog Container --}}
     <div class="relative z-10 flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-6">
         <div
-            x-show="open"
-            x-transition:enter="ease-out duration-200"
-            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-            x-transition:leave="ease-in duration-150"
-            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            @click.stop
+            onclick="event.stopPropagation()"
             class="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-xl"
         >
-            <form
-                :action="exam.action"
-                method="POST"
-                @submit="if ((hasDependents && !confirmed) || submitting) { $event.preventDefault(); return; } submitting = true;"
-            >
+            <form id="delete-exam-form" action="" method="POST">
                 @csrf
                 @method('DELETE')
-                <input type="hidden" name="force_delete" value="1" :disabled="!hasDependents">
-                <input type="hidden" name="return_query" :value="exam.return_query">
+                <input type="hidden" id="delete-exam-force-input" name="force_delete" value="1" disabled>
+                <input type="hidden" id="delete-exam-return-query" name="return_query" value="">
+                <input type="hidden" id="delete-exam-return-route" name="return_route" value="">
 
                 <div class="p-6">
                     <div class="flex items-start gap-4">
@@ -108,37 +48,38 @@
                     {{-- Target Exam Summary --}}
                     <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                         <div class="flex flex-wrap items-center gap-2">
-                            <p class="text-sm font-bold text-slate-900" x-text="exam.nama"></p>
+                            <p id="delete-exam-nama" class="text-sm font-bold text-slate-900"></p>
                             <span
+                                id="delete-exam-kode"
                                 class="rounded bg-white px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200"
-                                x-text="exam.kode_ujian || '-'"
-                            ></span>
+                            >-</span>
                         </div>
                         <p class="mt-1 text-xs text-slate-600">
-                            <span x-text="exam.mapel || '-'"></span>
+                            <span id="delete-exam-mapel">-</span>
                             <span class="mx-1 text-slate-300">&bull;</span>
-                            <span>Kelas <span x-text="exam.kelas || '-'"></span></span>
+                            <span>Kelas <span id="delete-exam-kelas">-</span></span>
                             <span class="mx-1 text-slate-300">&bull;</span>
-                            <span>PIC: <span x-text="exam.guru || '-'"></span></span>
+                            <span>PIC: <span id="delete-exam-guru">-</span></span>
                         </p>
 
                         <div class="mt-3 flex flex-wrap gap-2">
                             <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 ring-1 ring-inset ring-blue-200">
-                                <span x-text="exam.questions_count"></span>&nbsp;Soal
+                                <span id="delete-exam-questions-count">0</span>&nbsp;Soal
                             </span>
                             <span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200">
-                                <span x-text="exam.attempts_count"></span>&nbsp;Peserta
+                                <span id="delete-exam-attempts-count">0</span>&nbsp;Peserta
                             </span>
                         </div>
                     </div>
 
                     {{-- In-progress Warning --}}
                     <div
-                        x-show="Number(exam.in_progress_count || 0) > 0"
+                        id="delete-exam-in-progress-box"
+                        style="display: none;"
                         class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-800"
                     >
                         <p class="font-bold">
-                            Perhatian: Ada <span x-text="exam.in_progress_count"></span> siswa yang sedang mengerjakan ujian ini!
+                            Perhatian: Ada <span id="delete-exam-in-progress-count">0</span> siswa yang sedang mengerjakan ujian ini!
                         </p>
                         <p class="mt-0.5">
                             Jika dihapus sekarang, sesi pengerjaan aktif siswa tersebut akan langsung terhenti dan tidak dapat dilanjutkan.
@@ -147,33 +88,35 @@
 
                     {{-- Dependent Data Permanent Warning --}}
                     <div
-                        x-show="hasDependents"
+                        id="delete-exam-dependents-box"
+                        style="display: none;"
                         class="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800"
                     >
                         <p class="font-bold">Penghapusan Data Terkait (Tidak Dapat Dibatalkan):</p>
                         <ul class="mt-1.5 list-disc space-y-1 pl-4">
-                            <li>Seluruh butir soal pada paket ujian ini (<span class="font-semibold" x-text="exam.questions_count"></span> soal) akan ikut terhapus.</li>
-                            <li>Seluruh riwayat pengerjaan, jawaban, lampiran foto essay, dan nilai siswa (<span class="font-semibold" x-text="exam.attempts_count"></span> peserta) akan ikut terhapus.</li>
+                            <li>Seluruh butir soal pada paket ujian ini (<span id="delete-exam-questions-count-warn" class="font-semibold">0</span> soal) akan ikut terhapus.</li>
+                            <li>Seluruh riwayat pengerjaan, jawaban, lampiran foto essay, dan nilai siswa (<span id="delete-exam-attempts-count-warn" class="font-semibold">0</span> peserta) akan ikut terhapus.</li>
                             <li>Jadwal ujian ini tidak akan lagi muncul di dashboard maupun daftar ujian Guru dan Siswa.</li>
                         </ul>
                     </div>
 
                     {{-- Optional Synced Bank Cleanup --}}
                     <label
-                        x-show="Number(exam.synced_banks_count || 0) > 0"
+                        id="delete-exam-synced-banks-label"
+                        style="display: none;"
                         class="mt-4 flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-700 hover:bg-slate-50"
                     >
                         <input
                             type="checkbox"
+                            id="delete-exam-synced-banks-checkbox"
                             name="delete_synced_banks"
                             value="1"
-                            x-model="deleteSyncedBanks"
-                            :disabled="Number(exam.synced_banks_count || 0) <= 0"
+                            disabled
                             class="mt-0.5 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
                         >
                         <span>
                             <span class="block font-semibold text-slate-800">
-                                Hapus juga salinan Bank Soal yang tersinkron dari ujian ini (<span x-text="exam.synced_banks_count"></span> bank)
+                                Hapus juga salinan Bank Soal yang tersinkron dari ujian ini (<span id="delete-exam-synced-banks-count">0</span> bank)
                             </span>
                             <span class="mt-0.5 block text-slate-500">
                                 Biarkan tidak dicentang jika guru masih ingin menyimpan salinan soalnya di Bank Soal.
@@ -183,12 +126,13 @@
 
                     {{-- Mandatory Confirmation Checkbox when exam has questions or attempts --}}
                     <label
-                        x-show="hasDependents"
+                        id="delete-exam-confirm-label"
+                        style="display: none;"
                         class="mt-4 flex cursor-pointer items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50/50 p-3 text-xs text-rose-900"
                     >
                         <input
                             type="checkbox"
-                            x-model="confirmed"
+                            id="delete-exam-confirm-checkbox"
                             class="mt-0.5 rounded border-rose-300 text-rose-600 focus:ring-rose-500"
                         >
                         <span class="font-semibold">
@@ -200,21 +144,164 @@
                 <div class="flex flex-col-reverse gap-2 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end">
                     <button
                         type="button"
-                        @click="closeModal()"
-                        :disabled="submitting"
+                        id="delete-exam-cancel-btn"
+                        onclick="window.closeDeleteExamModal()"
                         class="inline-flex justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-100 disabled:opacity-50"
                     >
                         Batal
                     </button>
                     <button
                         type="submit"
-                        :disabled="(hasDependents && !confirmed) || submitting"
+                        id="delete-exam-submit-btn"
                         class="inline-flex justify-center rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        <span x-text="submitting ? 'Menghapus...' : (hasDependents ? 'Hapus Permanen' : 'Hapus Jadwal Ujian')"></span>
+                        <span id="delete-exam-submit-text">Hapus Jadwal Ujian</span>
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    const modal = document.getElementById('delete-exam-modal');
+    const form = document.getElementById('delete-exam-form');
+    if (!modal || !form) {
+        return;
+    }
+
+    const forceInput = document.getElementById('delete-exam-force-input');
+    const returnQueryInput = document.getElementById('delete-exam-return-query');
+    const returnRouteInput = document.getElementById('delete-exam-return-route');
+
+    const namaEl = document.getElementById('delete-exam-nama');
+    const kodeEl = document.getElementById('delete-exam-kode');
+    const mapelEl = document.getElementById('delete-exam-mapel');
+    const kelasEl = document.getElementById('delete-exam-kelas');
+    const guruEl = document.getElementById('delete-exam-guru');
+    const questionsCountEl = document.getElementById('delete-exam-questions-count');
+    const attemptsCountEl = document.getElementById('delete-exam-attempts-count');
+
+    const inProgressBox = document.getElementById('delete-exam-in-progress-box');
+    const inProgressCountEl = document.getElementById('delete-exam-in-progress-count');
+
+    const dependentsBox = document.getElementById('delete-exam-dependents-box');
+    const questionsCountWarnEl = document.getElementById('delete-exam-questions-count-warn');
+    const attemptsCountWarnEl = document.getElementById('delete-exam-attempts-count-warn');
+
+    const syncedBanksLabel = document.getElementById('delete-exam-synced-banks-label');
+    const syncedBanksCheckbox = document.getElementById('delete-exam-synced-banks-checkbox');
+    const syncedBanksCountEl = document.getElementById('delete-exam-synced-banks-count');
+
+    const confirmLabel = document.getElementById('delete-exam-confirm-label');
+    const confirmCheckbox = document.getElementById('delete-exam-confirm-checkbox');
+
+    const cancelBtn = document.getElementById('delete-exam-cancel-btn');
+    const submitBtn = document.getElementById('delete-exam-submit-btn');
+    const submitText = document.getElementById('delete-exam-submit-text');
+
+    let currentHasDependents = false;
+    let isSubmitting = false;
+
+    function parsePayload(source) {
+        if (!source) {
+            return {};
+        }
+        if (source.dataset && typeof source.dataset.exam === 'string') {
+            try {
+                return JSON.parse(source.dataset.exam);
+            } catch (e) {
+                return {};
+            }
+        }
+        if (typeof source === 'object') {
+            return source;
+        }
+        return {};
+    }
+
+    function syncSubmitButton() {
+        const blocked = (currentHasDependents && !confirmCheckbox.checked) || isSubmitting;
+        submitBtn.disabled = blocked;
+        cancelBtn.disabled = isSubmitting;
+        if (isSubmitting) {
+            submitText.textContent = 'Menghapus...';
+        } else {
+            submitText.textContent = currentHasDependents ? 'Hapus Permanen' : 'Hapus Jadwal Ujian';
+        }
+    }
+
+    window.openDeleteExamModal = function (source) {
+        const payload = parsePayload(source);
+        const questionsCount = Number(payload.questions_count || 0);
+        const attemptsCount = Number(payload.attempts_count || 0);
+        const inProgressCount = Number(payload.in_progress_count || 0);
+        const syncedBanksCount = Number(payload.synced_banks_count || 0);
+
+        currentHasDependents = questionsCount > 0 || attemptsCount > 0;
+        isSubmitting = false;
+
+        form.setAttribute('action', payload.action || '');
+        forceInput.disabled = !currentHasDependents;
+        returnQueryInput.value = payload.return_query || '';
+        returnRouteInput.value = payload.return_route || '';
+
+        namaEl.textContent = payload.nama || '-';
+        kodeEl.textContent = payload.kode_ujian || '-';
+        mapelEl.textContent = payload.mapel || '-';
+        kelasEl.textContent = payload.kelas || '-';
+        guruEl.textContent = payload.guru || '-';
+        questionsCountEl.textContent = String(questionsCount);
+        attemptsCountEl.textContent = String(attemptsCount);
+
+        inProgressCountEl.textContent = String(inProgressCount);
+        inProgressBox.style.display = inProgressCount > 0 ? 'block' : 'none';
+
+        questionsCountWarnEl.textContent = String(questionsCount);
+        attemptsCountWarnEl.textContent = String(attemptsCount);
+        dependentsBox.style.display = currentHasDependents ? 'block' : 'none';
+
+        syncedBanksCountEl.textContent = String(syncedBanksCount);
+        syncedBanksCheckbox.checked = false;
+        syncedBanksCheckbox.disabled = syncedBanksCount <= 0;
+        syncedBanksLabel.style.display = syncedBanksCount > 0 ? 'flex' : 'none';
+
+        confirmCheckbox.checked = false;
+        confirmLabel.style.display = currentHasDependents ? 'flex' : 'none';
+
+        syncSubmitButton();
+        modal.style.display = 'block';
+        document.body.classList.add('overflow-y-hidden');
+    };
+
+    window.closeDeleteExamModal = function () {
+        if (isSubmitting) {
+            return;
+        }
+        modal.style.display = 'none';
+        document.body.classList.remove('overflow-y-hidden');
+    };
+
+    confirmCheckbox.addEventListener('change', syncSubmitButton);
+
+    form.addEventListener('submit', function (event) {
+        if ((currentHasDependents && !confirmCheckbox.checked) || isSubmitting || !form.getAttribute('action')) {
+            event.preventDefault();
+            return;
+        }
+        isSubmitting = true;
+        syncSubmitButton();
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modal.style.display === 'block') {
+            window.closeDeleteExamModal();
+        }
+    });
+
+    window.addEventListener('open-delete-exam-modal', function (event) {
+        window.openDeleteExamModal(event.detail);
+    });
+})();
+</script>

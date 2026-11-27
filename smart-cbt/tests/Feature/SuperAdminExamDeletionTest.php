@@ -486,6 +486,34 @@ test('super admin deletion preserves allowed index filters and strips page and u
     $this->assertDatabaseMissing('exams', ['id' => $exam->id]);
 });
 
+test('super admin deletion from dashboard redirects back to dashboard preserving allowed filters', function () {
+    $fx = setupSuperAdminDeletionFixtures();
+
+    $exam = Exam::create([
+        'guru_id' => $fx['guru']->id,
+        'guru_pengawas_id' => $fx['pengawas']->id,
+        'mata_pelajaran_id' => $fx['mapel']->id,
+        'nama' => 'Test Dashboard Delete',
+        'kelas_id' => $fx['kelas']->id,
+        'kelas' => $fx['kelas']->nama_kelas,
+        'ruangan' => 'R-03',
+        'kode_ujian' => 'DSH-01',
+        'durasi_menit' => 30,
+        'status' => 'draft',
+        'komponen_soal' => ['pg'],
+    ]);
+
+    $this->actingAs($fx['admin'])
+        ->delete(route('ujian.destroy', $exam), [
+            'return_route' => 'dashboard',
+            'return_query' => 'q=test&page=2&evil=1',
+        ])
+        ->assertRedirect(route('dashboard', ['q' => 'test']))
+        ->assertSessionHas('success');
+
+    $this->assertDatabaseMissing('exams', ['id' => $exam->id]);
+});
+
 test('non admin users cannot delete exam schedules and delete modal triggers only render for admin', function () {
     Storage::fake('public');
     Storage::fake('exam_private');
@@ -506,25 +534,39 @@ test('non admin users cannot delete exam schedules and delete modal triggers onl
 
     $this->assertDatabaseHas('exams', ['id' => $exam->id]);
 
-    // Admin sees delete modal trigger on ujian.index and ujian.show even when exam has questions & attempts
+    $relativeDestroyPath = route('ujian.destroy', $exam, false);
+
+    // Admin sees vanilla-JS delete modal trigger on dashboard, ujian.index, and ujian.show even when exam has questions & attempts
+    $this->actingAs($fx['admin'])
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('onclick="window.openDeleteExamModal(this)"', false)
+        ->assertSee($relativeDestroyPath, false)
+        ->assertSee('delete-exam-modal-title')
+        ->assertDontSee('@click="$dispatch(\'open-delete-exam-modal\'', false);
+
     $this->actingAs($fx['admin'])
         ->get(route('ujian.index'))
         ->assertOk()
-        ->assertSee('open-delete-exam-modal')
-        ->assertSee('delete-exam-modal-title');
+        ->assertSee('onclick="window.openDeleteExamModal(this)"', false)
+        ->assertSee($relativeDestroyPath, false)
+        ->assertSee('delete-exam-modal-title')
+        ->assertDontSee('@click="$dispatch(\'open-delete-exam-modal\'', false);
 
     $this->actingAs($fx['admin'])
         ->get(route('ujian.show', $exam))
         ->assertOk()
-        ->assertSee('open-delete-exam-modal')
+        ->assertSee('onclick="window.openDeleteExamModal(this)"', false)
+        ->assertSee($relativeDestroyPath, false)
         ->assertSee('Hapus Ujian')
-        ->assertSee('delete-exam-modal-title');
+        ->assertSee('delete-exam-modal-title')
+        ->assertDontSee('@click="$dispatch(\'open-delete-exam-modal\'', false);
 
     // Guru show view MUST NOT render delete trigger or modal
     $this->actingAs($fx['guruUser'])
         ->get(route('guru.ujian.show', $exam))
         ->assertOk()
-        ->assertDontSee('open-delete-exam-modal')
+        ->assertDontSee('openDeleteExamModal')
         ->assertDontSee('Hapus Ujian')
         ->assertDontSee('delete-exam-modal-title');
 });

@@ -293,12 +293,13 @@ class ExamController extends Controller
         abort_unless($request->user()?->isAdmin(), 403);
 
         $preservedFilters = $this->preservedIndexFilters($request);
+        $targetRoute = $request->input('return_route') === 'dashboard' ? 'dashboard' : 'ujian.index';
 
         $hasDependents = $ujian->questions()->exists()
             || $ujian->examAttempts()->exists();
 
         if ($hasDependents && ! $request->boolean('force_delete')) {
-            return to_route('ujian.index', $preservedFilters)
+            return to_route($targetRoute, $preservedFilters)
                 ->with(
                     'error',
                     'Ujian ini sudah memiliki soal atau peserta. Centang konfirmasi penghapusan permanen untuk melanjutkan.'
@@ -321,7 +322,7 @@ class ExamController extends Controller
             ? "Jadwal ujian \"{$summary['exam_name']}\" berhasil dihapus."
             : "Jadwal ujian \"{$summary['exam_name']}\" berhasil dihapus (termasuk " . implode(', ', $detailParts) . ').';
 
-        return to_route('ujian.index', $preservedFilters)
+        return to_route($targetRoute, $preservedFilters)
             ->with('success', $message);
     }
 

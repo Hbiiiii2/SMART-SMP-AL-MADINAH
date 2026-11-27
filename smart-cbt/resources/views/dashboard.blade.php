@@ -46,6 +46,17 @@
                 </div>
             </div>
 
+            @if (session('success'))
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    {{ session('success') }}
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             {{-- =========================
                 STATISTIK MASTER & UJIAN
             ========================== --}}
@@ -246,7 +257,7 @@
                                 </div>
 
                                 <div class="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex flex-wrap items-center gap-2">
                                         <a href="{{ route('ujian.show', $ujian) }}"
                                            class="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
                                             Detail
@@ -256,6 +267,33 @@
                                                class="inline-flex items-center rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700">
                                                 Hasil ({{ $ujian->exam_attempts_count }})
                                             </a>
+                                        @endif
+                                        @if (Auth::user()->isAdmin())
+                                            @php
+                                                $deletePayload = [
+                                                    'action' => route('ujian.destroy', $ujian, false),
+                                                    'nama' => $ujian->nama,
+                                                    'kode_ujian' => $ujian->kode_ujian ?? '-',
+                                                    'mapel' => $ujian->mataPelajaran?->nama ?? '-',
+                                                    'kelas' => $ujian->kelasData?->nama_kelas ?? $ujian->kelas ?? '-',
+                                                    'guru' => $ujian->guru?->nama ?? '-',
+                                                    'questions_count' => (int) ($ujian->questions_count ?? 0),
+                                                    'attempts_count' => (int) ($ujian->exam_attempts_count ?? 0),
+                                                    'in_progress_count' => (int) ($ujian->in_progress_attempts_count ?? 0),
+                                                    'synced_banks_count' => (int) ($ujian->synced_question_banks_count ?? 0),
+                                                    'return_query' => request()->getQueryString() ?? '',
+                                                    'return_route' => 'dashboard',
+                                                ];
+                                            @endphp
+                                            <button
+                                                type="button"
+                                                data-exam="{{ json_encode($deletePayload, JSON_UNESCAPED_SLASHES) }}"
+                                                data-delete-exam-trigger="open-delete-exam-modal"
+                                                onclick="window.openDeleteExamModal(this)"
+                                                class="inline-flex items-center rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 shadow-sm hover:bg-rose-50"
+                                            >
+                                                Hapus
+                                            </button>
                                         @endif
                                     </div>
                                     <p class="text-[10px] text-slate-400">
@@ -365,4 +403,7 @@
         </div>
     </div>
 
+    @if (Auth::user()->isAdmin())
+        @include('ujian._delete-modal')
+    @endif
 </x-app-layout>
